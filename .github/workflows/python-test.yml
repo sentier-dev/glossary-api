@@ -1,0 +1,48 @@
+name: Python 🐍 CI/CD tests
+
+on:
+  push:
+    branches: [main, develop]
+    paths-ignore: # prevents workflow execution when only these types of files are modified
+      - "**.md" # wildcards prevent file in any repo dir from trigering workflow
+      - "**.bib"
+      - "**.ya?ml" # captures both .yml and .yaml
+      - "LICENSE"
+      - ".gitignore"
+  pull_request:
+    branches: [main, develop]
+    types: [opened, reopened] # excludes syncronize to avoid redundant trigger from commits on PRs
+    paths-ignore:
+      - "**.md"
+      - "**.bib"
+      - "**.ya?ml"
+      - "LICENSE"
+      - ".gitignore"
+  workflow_dispatch: # also allow manual trigger, for testing purposes
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+jobs:
+  build:
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11", "3.12"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install package
+        run: pip install .[test]
+
+      - name: Run tests
+        run: pytest
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
