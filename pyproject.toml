@@ -71,7 +71,6 @@ version = {attr = "dds_glossary.__version__"}
 
 [tool.pytest.ini_options]
 addopts = "--cov dds_glossary --cov-report term-missing --verbose"
-redis_port = 6379
 norecursedirs = [
     "dist",
     "build",
