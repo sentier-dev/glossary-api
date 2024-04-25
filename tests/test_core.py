@@ -7,6 +7,7 @@ from dds_glossary.core import get_show_voc_json_ld
 
 def test_get_show_voc_json_ld(tmp_path) -> None:
     """Test the get_show_voc_json_ld function."""
+
     rdf_path = tmp_path / "data.rdf"
     json_path = tmp_path / "data.json"
 
