@@ -28,7 +28,7 @@ classifiers = [
 ]
 requires-python = ">=3.9"
 dependencies = [
-    "rdflib",
+    "python-dotenv",
     "requests",
 ]
 
@@ -54,7 +54,7 @@ dev = [
     "pytest",
     "pytest-cov",
     "python-coveralls",
-    "rdflib",
+    "python-dotenv",
     "requests",
     "setuptools",
     "sphinx",
