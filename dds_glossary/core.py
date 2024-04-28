@@ -112,6 +112,7 @@ def get_unit_ontology_file(
         user="bio-ontology-research-group",
         repo="unit-ontology",
         branch="master",
+        path="",
         name="uo",
         extension=".owl",
     ),
@@ -180,5 +181,42 @@ def get_cpc_file(
     full_url = f"{url}{file_url}"
     return get_file_from_url(
         url=full_url,
+        file_output_path=file_output_path,
+    )
+
+
+def get_hs_file(
+    github_file: GitHubFile = GitHubFile(
+        user="datasets",
+        repo="harmonized-system",
+        branch="master",
+        path="data/",
+        name="harmonized-system",
+        extension=".csv",
+    ),
+    output_directory: Optional[Path] = None,
+) -> bytes:
+    """
+    Retrieve the Harmonized System (HS) file from GitHub using the provided
+        GitHubFile object.
+
+    Args:
+        github_file (GitHubFile): The GitHubFile object specifying the file to
+            retrieve.
+        output_directory (Optional[Path]): The directory where the file should
+            be saved. If not provided, the file will not be saved to disk.
+            D
+
+    Returns:
+        bytes: The content of the downloaded HS file.
+
+    """
+    file_output_path = get_file_path(
+        output_directory=output_directory,
+        file_name=github_file.name,
+        file_extension=github_file.extension,
+    )
+    return get_file_from_github(
+        github_file=github_file,
         file_output_path=file_output_path,
     )

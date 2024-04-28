@@ -31,5 +31,6 @@ class GitHubFile:
     user: str
     repo: str
     branch: str
+    path: str
     name: str
     extension: str

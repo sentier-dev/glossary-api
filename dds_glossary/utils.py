@@ -101,6 +101,7 @@ def get_file_from_github(
     """
     url = (
         f"{base_url}/{github_file.user}/{github_file.repo}/"
-        f"{github_file.branch}/{github_file.name}{github_file.extension}"
+        f"{github_file.branch}/{github_file.path}{github_file.name}"
+        f"{github_file.extension}"
     )
     return get_file_from_url(url, file_output_path=file_output_path)
