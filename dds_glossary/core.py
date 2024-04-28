@@ -138,3 +138,47 @@ def get_unit_ontology_file(
         github_file=github_file,
         file_output_path=file_output_path,
     )
+
+
+def get_cpc_file(
+    url: str = "https://storage.googleapis.com/fao-datalab-caliper/Downloads/",
+    file_version: str = "2.1",
+    file_name: str = "CPC",
+    file_extension: str = ".csv",
+    output_directory: Optional[Path] = None,
+) -> bytes:
+    """
+    Retrieves the Central Product Classification (CPC) file from the specified
+        URL and saves it to the output directory.
+
+    Args:
+        url (str, optional): The base URL where the file is located. Defaults
+            to "https://storage.googleapis.com/fao-datalab-caliper/Downloads/".
+        file_version (str, optional): The version of the file. Defaults to
+            "2.1".
+        file_name (str, optional): The name of the file. Defaults to "CPC".
+        file_extension (str, optional): The extension of the file. Defaults to
+            ".csv". For full list, check:
+            https://www.fao.org/statistics/caliper/tools/download/en.
+        output_directory (Path, optional): The directory where the file will
+            be saved. If None, the file will not be saved to the disk.
+            Defaults to None.
+
+    Returns:
+        bytes: The content of the retrieved file.
+
+    """
+    file_output_path = get_file_path(
+        output_directory=output_directory,
+        file_name=file_name,
+        file_extension=file_extension,
+    )
+    file_url = (
+        f"{file_name}v{file_version}/"
+        f"CPC{file_version.replace('.', '')}-core{file_extension}"
+    )
+    full_url = f"{url}{file_url}"
+    return get_file_from_url(
+        url=full_url,
+        file_output_path=file_output_path,
+    )
