@@ -10,7 +10,7 @@ authors = [
 maintainers = [
   { name="Mina Sami", email="sami.mg@outlook.com" }
 ]
-description = "Flask app for Pandarus."
+description = "Sustainability assessment classifications glossary."
 readme = "README.md"
 dynamic = ["version"]
 # Add here all kinds of additional classifiers as defined under
