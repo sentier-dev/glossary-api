@@ -120,7 +120,7 @@ def test_cpc_file_file_suburl() -> None:
         name="file",
         extension=".txt",
     )
-    assert cpc_file.file_suburl == "filev2.1/FILE21-core.txt"
+    assert cpc_file.file_suburl == "FILEv2.1/FILE21-core.txt"
 
 
 def test_cpc_file_get_url() -> None:

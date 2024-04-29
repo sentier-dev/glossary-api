@@ -25,12 +25,14 @@ DOWNLOAD_FILES: list[DownloadableFile] = [
         extension=".owl",
     ),
     NERCFile(name="nerc", extension=".rdf"),
-    CPCFile(name="cpc", extension=".rdf"),
+    CPCFile(name="cpc", extension=".csv"),
     OBOEFile(name="oboe", extension=".owl"),
 ]
 
 
-def downloads(timeout: int = 10, ouput_directory: Optional[Path] = None) -> list[bytes]:
+def download_files(
+    timeout: int = 10, ouput_directory: Optional[Path] = None
+) -> list[bytes]:
     """Downloads the files and returns their contents.
 
     Args:

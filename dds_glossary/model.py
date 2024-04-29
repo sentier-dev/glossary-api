@@ -145,7 +145,7 @@ class CPCFile(DownloadableFile):
             str: The suburl of the file.
         """
         return (
-            f"{self.name.lower()}v{self.version}/"
+            f"{self.name.upper()}v{self.version}/"
             f"{self.name.upper()}{self.version.replace('.', '')}"
             f"-core{self.extension}"
         )
