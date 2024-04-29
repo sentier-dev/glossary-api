@@ -12,9 +12,9 @@ Here is a list of important resources for contributors:
 - [Code of Conduct][Code of Conduct]
 
 [License]: https://opensource.org/licenses/BSD-3-Clause
-[Source Code]: https://github.com/sami-m-g/dds_glossary
+[Source Code]: https://github.com/Depart-de-Sentier/dds_glossary
 [Documentation]: https://dds_glossary.readthedocs.io/
-[Issue Tracker]: https://github.com/sami-m-g/dds_glossary/issues
+[Issue Tracker]: https://github.com/Depart-de-Sentier/dds_glossary/issues
 
 ## How to report a bug
 
@@ -92,5 +92,5 @@ It is recommended to open an issue before starting work on anything.
 This will allow a chance to talk it over with the owners and validate your approach.
 
 [pytest]: https://pytest.readthedocs.io/
-[pull request]: https://github.com/sami-m-g/dds_glossary/pulls
+[pull request]: https://github.com/Depart-de-Sentier/dds_glossary/pulls
 [code of conduct]: CODE_OF_CONDUCT.md
