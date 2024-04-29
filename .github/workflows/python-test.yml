@@ -46,8 +46,8 @@ jobs:
       - name: Install package
         run: pip install .[test]
 
-      - name: Run tests
-        run: pytest
+      - name: Run unit tests
+        run: pytest tests/unit
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4

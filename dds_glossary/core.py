@@ -3,7 +3,7 @@
 from pathlib import Path
 from typing import Optional
 
-from .model import CPCFile, DownloadableFile, GitHubFile, NERCFile, OBOEFile
+from .model import CPCFile, DownloadableFile, GitHubFile, NERCFile, OBOEFile, OOUMFile
 
 DOWNLOAD_FILES: list[DownloadableFile] = [
     # Harmonized System (HS)
@@ -27,6 +27,12 @@ DOWNLOAD_FILES: list[DownloadableFile] = [
     NERCFile(name="nerc", extension=".rdf"),
     CPCFile(name="cpc", extension=".csv"),
     OBOEFile(name="oboe", extension=".owl"),
+    OOUMFile(name="Valerie-9", extension=".ttl"),
+    OOUMFile(name="FoodAllergies", extension=".ttl"),
+    OOUMFile(name="warenkennisbank", extension=".ttl"),
+    OOUMFile(name="FoodTaxonomy", extension=".ttl"),
+    OOUMFile(name="om-2", extension=".ttl"),
+    OOUMFile(name="om-1.8", extension=".ttl"),
 ]
 
 

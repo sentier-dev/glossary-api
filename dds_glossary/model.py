@@ -53,6 +53,14 @@ class DownloadableFile:
         """
         return {}
 
+    def get_headers(self) -> dict:
+        """Returns the headers to be used in the request.
+
+        Returns:
+            dict: The headers to be used in the request.
+        """
+        return {}
+
     def download(
         self,
         timeout: int = 10,
@@ -70,9 +78,12 @@ class DownloadableFile:
         Returns:
             bytes: The file content as bytes.
         """
-        url = self.get_url()
-        params = self.get_params()
-        response = requests.get(url, params=params, timeout=timeout)
+        response = requests.get(
+            url=self.get_url(),
+            params=self.get_params(),
+            headers=self.get_headers(),
+            timeout=timeout,
+        )
         response.raise_for_status()
         file_bytes = response.content
 
@@ -186,6 +197,34 @@ class OBOEFile(DownloadableFile):
         if not api_key:
             raise MissingAPIKeyError(OBOEFile.base_url)
         return {"apikey": api_key}
+
+
+@dataclass
+class OOUMFile(DownloadableFile):
+    """Represents a file hosted on the Ontology of Units of Measure (OOUM)
+    website.
+
+    Attributes:
+        base_url (ClassVar[str]): The base URL for OOUM files.
+    """
+
+    base_url: ClassVar[str] = "http://www.ontology-of-units-of-measure.org/"
+
+    def get_url(self) -> str:
+        """Returns the URL of the file to download.
+
+        Returns:
+            str: The URL of the file.
+        """
+        return f"{OOUMFile.base_url}data/{self.file_name}"
+
+    def get_headers(self) -> dict:
+        """Returns the headers to be used in the request.
+
+        Returns:
+            dict: The headers to be used in the request.
+        """
+        return {"Accept": "text/html"}
 
 
 @dataclass

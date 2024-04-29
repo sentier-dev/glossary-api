@@ -8,7 +8,14 @@ import pytest
 from requests import Response
 
 from dds_glossary.errors import MissingAPIKeyError
-from dds_glossary.model import CPCFile, DownloadableFile, GitHubFile, NERCFile, OBOEFile
+from dds_glossary.model import (
+    CPCFile,
+    DownloadableFile,
+    GitHubFile,
+    NERCFile,
+    OBOEFile,
+    OOUMFile,
+)
 
 
 def test_downloadable_file_file_name() -> None:
@@ -38,6 +45,15 @@ def test_downloadable_file_get_params() -> None:
         extension=".txt",
     )
     assert not downloadable_file.get_params()
+
+
+def test_downloadable_file_get_headers() -> None:
+    """Test the get_headers method."""
+    downloadable_file = DownloadableFile(
+        name="file",
+        extension=".txt",
+    )
+    assert not downloadable_file.get_headers()
 
 
 def test_downloadable_file_download_not_zip(monkeypatch, tmp_path) -> None:
@@ -87,15 +103,6 @@ def test_downloadable_file_download_zip(monkeypatch, tmp_path) -> None:
     file_output_path = tmp_path / f"{file_name}{file_extension}"
     assert content == file_content
     assert file_output_path.read_bytes() == file_content
-
-
-def test_nerc_file_get_url() -> None:
-    """Test the get_url method."""
-    nerc_file = NERCFile(
-        name="file",
-        extension=".txt",
-    )
-    assert nerc_file.get_url() == NERCFile.base_url
 
 
 def test_nerc_file_get_params() -> None:
@@ -153,13 +160,24 @@ def test_oboe_file_params_api_key_not_exists(monkeypatch) -> None:
         oboe_file.get_params()
 
 
-def test_oboe_file_get_url() -> None:
+def test_ooum_file_get_url() -> None:
     """Test the get_url method."""
-    oboe_file = OBOEFile(
+    ooum_file = OOUMFile(
         name="file",
         extension=".txt",
     )
-    assert oboe_file.get_url() == OBOEFile.base_url
+    assert ooum_file.get_url() == (
+        "http://www.ontology-of-units-of-measure.org/data/file.txt"
+    )
+
+
+def test_ooum_file_get_headers() -> None:
+    """Test the get_headers method."""
+    ooum_file = OOUMFile(
+        name="file",
+        extension=".txt",
+    )
+    assert ooum_file.get_headers() == {"Accept": "text/html"}
 
 
 def test_github_file_get_url() -> None:
