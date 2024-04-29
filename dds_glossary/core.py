@@ -15,7 +15,7 @@ DOWNLOAD_FILES: list[DownloadableFile] = [
         name="harmonized-system",
         extension=".csv",
     ),
-    # Unit Ontology
+    # Unit Ontology (UO)
     GitHubFile(
         user="bio-ontology-research-group",
         repo="unit-ontology",
