@@ -1,4 +1,4 @@
-"""Tests for dds_glossary.utils module."""
+"""Tests for dds_glossary.model module."""
 
 from http import HTTPStatus
 from io import BytesIO
