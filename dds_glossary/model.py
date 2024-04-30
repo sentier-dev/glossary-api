@@ -8,7 +8,6 @@ from typing import ClassVar, Optional
 from zipfile import ZipFile
 
 import requests
-from dotenv import load_dotenv
 
 from .errors import MissingAPIKeyError
 
@@ -192,7 +191,6 @@ class OBOEFile(DownloadableFile):
         Returns:
             dict: The parameters to be used in the request.
         """
-        load_dotenv()
         api_key = getenv(OBOEFile.API_ENV_KEY)
         if not api_key:
             raise MissingAPIKeyError(OBOEFile.base_url)
