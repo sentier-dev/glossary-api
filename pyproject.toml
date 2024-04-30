@@ -31,7 +31,8 @@ dependencies = [
     "psycopg2-binary",
     "python-dotenv",
     "requests",
-    "sqlalchemy",
+    "SQLAlchemy>=2.0.0",
+    "sqlalchemy-utils",
 ]
 
 [project.urls]
@@ -59,6 +60,10 @@ dev = [
     "setuptools",
     "sphinx",
     "sphinx-rtd-theme",
+    "types-colorama",
+    "types-Pygments",
+    "types-requests",
+    "types-setuptools",
 ]
 
 [tool.setuptools]
@@ -103,3 +108,6 @@ include_trailing_comma = true
 force_grid_wrap = 0
 use_parentheses = true
 ensure_newline_before_comments = true
+
+[tool.mypy]
+ignore_missing_imports = true

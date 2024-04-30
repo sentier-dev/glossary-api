@@ -256,3 +256,19 @@ class GitHubFile(DownloadableFile):
             f"{self.branch}/{self.path}{self.name}"
             f"{self.extension}"
         )
+
+
+@dataclass
+class RelationshipTuple:
+    """
+    Represents a relationship tuple.
+
+    Attributes:
+        source_concept (str): The source concept.
+        destination_concept (str): The destination concept.
+        relationship_type (str): The type of relationship.
+    """
+
+    source_concept: str
+    destination_concept: str
+    relationship_type: str
