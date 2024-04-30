@@ -72,7 +72,7 @@ jobs:
       - name: Run unit tests
         run: pytest tests/unit
         env:
-          DATABASE_URL: postgres://user:password@localhost:5432/testdb
+          DATABASE_URL: postgresql://user:password@localhost:5432/testdb
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
