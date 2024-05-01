@@ -59,7 +59,7 @@ def test_init_engine_database_exists_drop(database_url) -> None:
 
 def test_save_concept_scheme_file(database_url) -> None:
     """Test the save_concept_scheme_file function."""
-    engine = init_engine(database_url)
+    engine = init_engine(database_url, drop_database_flag=True)
     concept_scheme_name = "test"
     concepts_names = ["a", "b", "c"]
     relationship_tuples = [
