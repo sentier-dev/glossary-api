@@ -56,12 +56,12 @@ class DownloadableFile:
 
     @property
     def concept_scheme_name(self) -> str:
-        """Returns the name of the concept schema.
+        """Returns the name of the concept scheme.
 
         Returns:
-            str: The name of the concept schema.
+            str: The name of the concept scheme.
         """
-        return ""
+        return self.name
 
     @property
     def concepts_names(self) -> list[str]:
@@ -314,15 +314,6 @@ class HSFile(GitHubFile):
     repo: str = "harmonized-system"
     branch: str = "master"
     path: str = "data/"
-
-    @property
-    def concept_scheme_name(self) -> str:
-        """Returns the name of the concept schema.
-
-        Returns:
-            str: The name of the concept schema.
-        """
-        return "Harmonized System"
 
     @property
     def concepts_names(self) -> list[str]:

@@ -52,7 +52,7 @@ def test_downloadable_file_concept_scheme_name() -> None:
         name="file",
         extension="txt",
     )
-    assert downloadable_file.concept_scheme_name == ""
+    assert downloadable_file.concept_scheme_name == downloadable_file.name
 
 
 def test_downloadable_file_concepts_names() -> None:
@@ -240,15 +240,6 @@ def test_github_file_get_url() -> None:
     assert github_file.get_url() == (
         "https://raw.githubusercontent.com/user/repo/branch/path/file.txt"
     )
-
-
-def test_hs_file_concept_scheme_name() -> None:
-    """Test the concept_scheme_name property."""
-    hs_file = HSFile(
-        name="file",
-        extension="txt",
-    )
-    assert hs_file.concept_scheme_name == "Harmonized System"
 
 
 def test_hs_file_concepts_namespace(monkeypatch, tmp_path) -> None:
