@@ -98,8 +98,8 @@ def init_engine(database_url: str, drop_database_flag: bool = True) -> Engine:
 
 def save_concept_scheme_file(
     engine: Engine,
-    concept_schema_name: str,
-    conepts_names: list[str],
+    concept_scheme_name: str,
+    concepts_names: list[str],
     relationship_tuples: list[RelationshipTuple],
 ) -> None:
     """
@@ -107,19 +107,19 @@ def save_concept_scheme_file(
 
     Args:
         engine (Engine): The database engine.
-        concept_schema_name (str): The name of the concept scheme.
-        conepts_names (list[str]): The names of the concepts.
+        concept_scheme_name (str): The name of the concept scheme.
+        concepts_names (list[str]): The names of the concepts.
         relationship_tuples (list[RelationshipTuple]): The relationship tuples.
 
     Returns:
         None
     """
     with Session(engine) as session:
-        concept_scheme = ConceptScheme(name=concept_schema_name)
+        concept_scheme = ConceptScheme(name=concept_scheme_name)
         session.add(concept_scheme)
 
         concept_map: dict[str, int] = {}
-        for concept_name in conepts_names:
+        for concept_name in concepts_names:
             concept = Concept(name=concept_name, scheme_id=concept_scheme.id)
             session.add(concept)
             session.flush()

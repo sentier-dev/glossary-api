@@ -60,7 +60,7 @@ def test_init_engine_database_exists_drop(database_url) -> None:
 def test_save_concept_scheme_file(database_url) -> None:
     """Test the save_concept_scheme_file function."""
     engine = init_engine(database_url)
-    concept_schema_name = "test"
+    concept_scheme_name = "test"
     concepts_names = ["a", "b", "c"]
     relationship_tuples = [
         RelationshipTuple("a", "b", "related"),
@@ -69,7 +69,7 @@ def test_save_concept_scheme_file(database_url) -> None:
     ]
     save_concept_scheme_file(
         engine,
-        concept_schema_name,
+        concept_scheme_name,
         concepts_names,
         relationship_tuples,
     )
@@ -77,7 +77,7 @@ def test_save_concept_scheme_file(database_url) -> None:
     with Session(engine) as session:
         concept_schemes = session.query(ConceptScheme).all()
         assert len(concept_schemes) == 1
-        assert concept_schemes[0].name == concept_schema_name
+        assert concept_schemes[0].name == concept_scheme_name
 
         concepts = session.query(Concept).all()
         assert len(concepts) == 3
