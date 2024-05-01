@@ -1,4 +1,4 @@
-"""Core functions for the dds_glossary package."""
+"""Controller classes for the dds_glossary package."""
 
 from typing import Optional
 
