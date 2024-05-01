@@ -5,6 +5,7 @@ from io import BytesIO
 from zipfile import ZipFile
 
 import pytest
+from pandas import DataFrame
 from requests import Response
 
 from dds_glossary.errors import MissingAPIKeyError
@@ -12,9 +13,11 @@ from dds_glossary.model import (
     CPCFile,
     DownloadableFile,
     GitHubFile,
+    HSFile,
     NERCFile,
     OBOEFile,
     OOUMFile,
+    RelationshipTuple,
 )
 
 
@@ -38,7 +41,36 @@ def test_downloadable_file_file_path(tmp_path) -> None:
         extension=file_extension,
         output_dir=tmp_path,
     )
-    assert downloadable_file.file_path == f"{tmp_path}/{file_name}.{file_extension}"
+    assert (
+        str(downloadable_file.file_path) == f"{tmp_path}/{file_name}.{file_extension}"
+    )
+
+
+def test_downloadable_file_concept_scheme_name() -> None:
+    """Test the concept_scheme_name property."""
+    downloadable_file = DownloadableFile(
+        name="file",
+        extension="txt",
+    )
+    assert downloadable_file.concept_scheme_name == ""
+
+
+def test_downloadable_file_concepts_names() -> None:
+    """Test the concepts_names property."""
+    downloadable_file = DownloadableFile(
+        name="file",
+        extension="txt",
+    )
+    assert not downloadable_file.concepts_names
+
+
+def test_downloadable_file_relationship_tuples() -> None:
+    """Test the relationship_tuples property."""
+    downloadable_file = DownloadableFile(
+        name="file",
+        extension="txt",
+    )
+    assert not downloadable_file.relationship_tuples
 
 
 def test_downloadable_file_get_url() -> None:
@@ -208,3 +240,49 @@ def test_github_file_get_url() -> None:
     assert github_file.get_url() == (
         "https://raw.githubusercontent.com/user/repo/branch/path/file.txt"
     )
+
+
+def test_hs_file_concept_scheme_name() -> None:
+    """Test the concept_scheme_name property."""
+    hs_file = HSFile(
+        name="file",
+        extension="txt",
+    )
+    assert hs_file.concept_scheme_name == "Harmonized System"
+
+
+def test_hs_file_concepts_namespace(monkeypatch, tmp_path) -> None:
+    """Test the concepts_namespace property."""
+    concepts_names = ["concept1", "concept2", "concept3"]
+    data_file_path = tmp_path / "concepts.csv"
+    data = DataFrame({"description": concepts_names})
+    data.to_csv(data_file_path, index=False)
+    monkeypatch.setattr(HSFile, "file_path", data_file_path)
+
+    hs_file = HSFile(
+        name="file",
+        extension="txt",
+    )
+    assert hs_file.concepts_names == concepts_names
+
+
+def test_hs_file_relationship_tuples(monkeypatch, tmp_path) -> None:
+    """Test the relationship_tuples property."""
+    descriptions = ["description1", "description2", "description3"]
+    hscodes = ["01", "0101", "010121"]
+    parents = ["", "01", "0101"]
+    data_file_path = tmp_path / "relationships.csv"
+    data = DataFrame(
+        {"description": descriptions, "hscode": hscodes, "parent": parents}
+    )
+    data.to_csv(data_file_path, index=False)
+    monkeypatch.setattr(HSFile, "file_path", data_file_path)
+
+    hs_file = HSFile(
+        name="file",
+        extension="txt",
+    )
+    assert hs_file.relationship_tuples == [
+        RelationshipTuple("description2", "description1", "broader"),
+        RelationshipTuple("description3", "description2", "broader"),
+    ]

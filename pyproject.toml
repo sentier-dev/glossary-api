@@ -27,6 +27,7 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "appdirs",
+    "pandas",
     "psycopg2-binary",
     "python-dotenv",
     "requests",

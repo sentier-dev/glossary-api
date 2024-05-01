@@ -9,6 +9,7 @@ from zipfile import ZipFile
 
 import requests
 from appdirs import user_data_dir
+from pandas import read_csv
 
 from .errors import MissingAPIKeyError
 
@@ -16,7 +17,8 @@ from .errors import MissingAPIKeyError
 @dataclass
 class DownloadableFile:
     """
-    Represents a downloadable file.
+    Represents a downloadable file. This class should not be instantiated
+    directly. Instead, use one of the subclasses.
 
     Attributes:
         name (str): The name of the file.
@@ -51,6 +53,33 @@ class DownloadableFile:
             Path: The path of the file.
         """
         return self.output_dir / self.file_name
+
+    @property
+    def concept_scheme_name(self) -> str:
+        """Returns the name of the concept schema.
+
+        Returns:
+            str: The name of the concept schema.
+        """
+        return ""
+
+    @property
+    def concepts_names(self) -> list[str]:
+        """Returns the names of the concepts.
+
+        Returns:
+            list[str]: The names of the concepts.
+        """
+        return []
+
+    @property
+    def relationship_tuples(self) -> list["RelationshipTuple"]:
+        """Returns the relationship tuples.
+
+        Returns:
+            list[RelationshipTuple]: The relationship tuples.
+        """
+        return []
 
     def get_url(self) -> str:
         """Returns the URL of the file to download.
@@ -267,6 +296,65 @@ class GitHubFile(DownloadableFile):
             f"{self.branch}/{self.path}{self.name}"
             f".{self.extension}"
         )
+
+
+@dataclass
+class HSFile(GitHubFile):
+    """Represents a file hosted on the Harmonized System (HS) GitHub
+    repository.
+
+    Attributes:
+        user (str): The GitHub username. Defaults to "datasets".
+        repo (str): The GitHub repository name. Defaults to "harmonized-system".
+        branch (str): The branch name. Defaults to "master".
+        path (str): The path to the file. Defaults to "data/".
+    """
+
+    user: str = "datasets"
+    repo: str = "harmonized-system"
+    branch: str = "master"
+    path: str = "data/"
+
+    @property
+    def concept_scheme_name(self) -> str:
+        """Returns the name of the concept schema.
+
+        Returns:
+            str: The name of the concept schema.
+        """
+        return "Harmonized System"
+
+    @property
+    def concepts_names(self) -> list[str]:
+        """Returns the names of the concepts.
+
+        Returns:
+            list[str]: The names of the concepts.
+        """
+        df = read_csv(self.file_path)
+        return df["description"].unique().tolist()
+
+    @property
+    def relationship_tuples(self) -> list["RelationshipTuple"]:
+        """Returns the relationship tuples.
+
+        Returns:
+            list[RelationshipTuple]: The relationship tuples.
+        """
+        df = read_csv(self.file_path)
+        relationship_tuples: list[RelationshipTuple] = []
+        for _, row in df.iterrows():
+            parent = df[df.hscode == row["parent"]]
+            if not parent.empty:
+                destination_concept = parent.iloc[0]["description"]
+                relationship_tuples.append(
+                    RelationshipTuple(
+                        source_concept=row["description"],
+                        destination_concept=destination_concept,
+                        relationship_type="broader",
+                    )
+                )
+        return relationship_tuples
 
 
 @dataclass
