@@ -75,7 +75,7 @@ jobs:
           DATABASE_URL: postgresql://user:password@localhost:5432/testdb
 
       - name: Run integrations tests
-        run: pytest tests/integrations
+        run: pytest tests/integration
         env:
           DATABASE_URL: postgresql://user:password@localhost:5432/testdb
 
