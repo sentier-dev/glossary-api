@@ -1,13 +1,14 @@
 """Model classes for the dds_glossary package."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from io import BytesIO
 from os import getenv
 from pathlib import Path
-from typing import ClassVar, Optional
+from typing import ClassVar
 from zipfile import ZipFile
 
 import requests
+from appdirs import user_data_dir
 
 from .errors import MissingAPIKeyError
 
@@ -20,10 +21,16 @@ class DownloadableFile:
     Attributes:
         name (str): The name of the file.
         extension (str): The file extension.
+        output_dir (Path): The output directory. Defaults to the user data
+            directory of the dds_glossary package.
     """
 
     name: str
     extension: str
+    output_dir: Path = field(
+        default_factory=lambda: Path(user_data_dir("dds_glossary")),
+        kw_only=True,
+    )
 
     base_url: ClassVar[str] = ""
 
@@ -34,7 +41,16 @@ class DownloadableFile:
         Returns:
             str: The name of the file.
         """
-        return f"{self.name}{self.extension}"
+        return f"{self.name}.{self.extension}"
+
+    @property
+    def file_path(self) -> Path:
+        """Returns the path of the file.
+
+        Returns:
+            Path: The path of the file.
+        """
+        return self.output_dir / self.file_name
 
     def get_url(self) -> str:
         """Returns the URL of the file to download.
@@ -63,7 +79,6 @@ class DownloadableFile:
     def download(
         self,
         timeout: int = 10,
-        file_output_path: Optional[Path] = None,
     ) -> bytes:
         """Retrieve a file from the given URL, save it to a file and return the
         file as bytes.
@@ -71,8 +86,6 @@ class DownloadableFile:
         Args:
             timeout (int): The number of seconds to wait for the server to send
                 data before giving up. Defaults to 10.
-            file_output_path (Optional[Path]): The path to save the file.
-                Defaults to None.
 
         Returns:
             bytes: The file content as bytes.
@@ -93,10 +106,8 @@ class DownloadableFile:
                 with zipped_file.open(zip_file_name) as file_handler:
                     file_bytes = file_handler.read()
 
-        if file_output_path:
-            file_path = file_output_path / self.file_name
-            with open(file_path, "wb") as file_handler:
-                file_handler.write(file_bytes)
+        with open(self.file_path, "wb") as file_handler:
+            file_handler.write(file_bytes)
 
         return file_bytes
 
@@ -157,7 +168,7 @@ class CPCFile(DownloadableFile):
         return (
             f"{self.name.upper()}v{self.version}/"
             f"{self.name.upper()}{self.version.replace('.', '')}"
-            f"-core{self.extension}"
+            f"-core.{self.extension}"
         )
 
     def get_url(self) -> str:
@@ -254,7 +265,7 @@ class GitHubFile(DownloadableFile):
         return (
             f"{GitHubFile.base_url}/{self.user}/{self.repo}/"
             f"{self.branch}/{self.path}{self.name}"
-            f"{self.extension}"
+            f".{self.extension}"
         )
 
 

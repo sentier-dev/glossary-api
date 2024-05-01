@@ -21,19 +21,31 @@ from dds_glossary.model import (
 def test_downloadable_file_file_name() -> None:
     """Test the file_name property."""
     file_name = "file"
-    file_extension = ".txt"
+    file_extension = "txt"
     downloadable_file = DownloadableFile(
         name=file_name,
         extension=file_extension,
     )
-    assert downloadable_file.file_name == f"{file_name}{file_extension}"
+    assert downloadable_file.file_name == f"{file_name}.{file_extension}"
+
+
+def test_downloadable_file_file_path(tmp_path) -> None:
+    """Test the file_path property."""
+    file_name = "file"
+    file_extension = "txt"
+    downloadable_file = DownloadableFile(
+        name=file_name,
+        extension=file_extension,
+        output_dir=tmp_path,
+    )
+    assert downloadable_file.file_path == f"{tmp_path}/{file_name}.{file_extension}"
 
 
 def test_downloadable_file_get_url() -> None:
     """Test the get_url method."""
     downloadable_file = DownloadableFile(
         name="file",
-        extension=".txt",
+        extension="txt",
     )
     assert downloadable_file.get_url() == ""
 
@@ -42,7 +54,7 @@ def test_downloadable_file_get_params() -> None:
     """Test the get_params method."""
     downloadable_file = DownloadableFile(
         name="file",
-        extension=".txt",
+        extension="txt",
     )
     assert not downloadable_file.get_params()
 
@@ -51,7 +63,7 @@ def test_downloadable_file_get_headers() -> None:
     """Test the get_headers method."""
     downloadable_file = DownloadableFile(
         name="file",
-        extension=".txt",
+        extension="txt",
     )
     assert not downloadable_file.get_headers()
 
@@ -66,13 +78,14 @@ def test_downloadable_file_download_not_zip(monkeypatch, tmp_path) -> None:
     monkeypatch.setattr(DownloadableFile, "get_url", lambda _: "")
 
     file_name = "file"
-    file_extension = ".txt"
+    file_extension = "txt"
     content = DownloadableFile(
         name=file_name,
         extension=file_extension,
-    ).download(file_output_path=tmp_path)
+        output_dir=tmp_path,
+    ).download()
 
-    file_output_path = tmp_path / f"{file_name}{file_extension}"
+    file_output_path = tmp_path / f"{file_name}.{file_extension}"
     assert content == response.content
     assert file_output_path.read_bytes() == response.content
 
@@ -82,7 +95,7 @@ def test_downloadable_file_download_zip(monkeypatch, tmp_path) -> None:
     file_content = b"file content"
     zip_buffer = BytesIO()
     with ZipFile(zip_buffer, "w") as zip_file:
-        zip_file.writestr("example.txt", file_content)
+        zip_file.writestr("exampletxt", file_content)
     zip_buffer.seek(0)
     zip_bytes = zip_buffer.getvalue()
 
@@ -98,9 +111,10 @@ def test_downloadable_file_download_zip(monkeypatch, tmp_path) -> None:
     content = DownloadableFile(
         name=file_name,
         extension=file_extension,
-    ).download(file_output_path=tmp_path)
+        output_dir=tmp_path,
+    ).download()
 
-    file_output_path = tmp_path / f"{file_name}{file_extension}"
+    file_output_path = tmp_path / f"{file_name}.{file_extension}"
     assert content == file_content
     assert file_output_path.read_bytes() == file_content
 
@@ -111,7 +125,7 @@ def test_nerc_file_get_params() -> None:
     media_type = "media_type"
     nerc_file = NERCFile(
         name="file",
-        extension=".txt",
+        extension="txt",
         profile=profile,
         media_type=media_type,
     )
@@ -125,7 +139,7 @@ def test_cpc_file_file_suburl() -> None:
     """Test the file_suburl property."""
     cpc_file = CPCFile(
         name="file",
-        extension=".txt",
+        extension="txt",
     )
     assert cpc_file.file_suburl == "FILEv2.1/FILE21-core.txt"
 
@@ -134,7 +148,7 @@ def test_cpc_file_get_url() -> None:
     """Test the get_url method."""
     cpc_file = CPCFile(
         name="file",
-        extension=".txt",
+        extension="txt",
     )
     assert cpc_file.get_url() == (f"{CPCFile.base_url}{cpc_file.file_suburl}")
 
@@ -144,7 +158,7 @@ def test_oboe_file_params_api_key_exists(monkeypatch) -> None:
     monkeypatch.setenv("OBOE_API_KEY", "api_key")
     oboe_file = OBOEFile(
         name="file",
-        extension=".txt",
+        extension="txt",
     )
     assert oboe_file.get_params() == {"apikey": "api_key"}
 
@@ -154,7 +168,7 @@ def test_oboe_file_params_api_key_not_exists(monkeypatch) -> None:
     monkeypatch.setenv("OBOE_API_KEY", "")
     oboe_file = OBOEFile(
         name="file",
-        extension=".txt",
+        extension="txt",
     )
     with pytest.raises(MissingAPIKeyError):
         oboe_file.get_params()
@@ -164,7 +178,7 @@ def test_ooum_file_get_url() -> None:
     """Test the get_url method."""
     ooum_file = OOUMFile(
         name="file",
-        extension=".txt",
+        extension="txt",
     )
     assert ooum_file.get_url() == (
         "http://www.ontology-of-units-of-measure.org/data/file.txt"
@@ -175,7 +189,7 @@ def test_ooum_file_get_headers() -> None:
     """Test the get_headers method."""
     ooum_file = OOUMFile(
         name="file",
-        extension=".txt",
+        extension="txt",
     )
     assert ooum_file.get_headers() == {"Accept": "text/html"}
 
@@ -184,7 +198,7 @@ def test_github_file_get_url() -> None:
     """Test the get_url method."""
     github_file = GitHubFile(
         name="file",
-        extension=".txt",
+        extension="txt",
         user="user",
         repo="repo",
         branch="branch",
