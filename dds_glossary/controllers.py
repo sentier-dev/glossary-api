@@ -1,8 +1,19 @@
 """Controller classes for the dds_glossary package."""
 
-from typing import Optional
+from typing import Optional, Union
 
-from .database import init_engine, save_concept_scheme_file
+from sqlalchemy.exc import NoResultFound
+
+from .database import (
+    Concept,
+    ConceptScheme,
+    Relationship,
+    get_concept_schemes,
+    get_concepts_for_scheme,
+    get_relationships_for_concept,
+    init_engine,
+    save_concept_scheme_file,
+)
 from .model import (
     CPCFile,
     DownloadableFile,
@@ -56,7 +67,10 @@ class PipelinesController:
 
         self.downloadable_files = downloadable_files
         self.timeout = timeout
-        self.engine = init_engine(database_url=database_url)
+        self.engine = init_engine(
+            database_url=database_url,
+            drop_database_flag=True,
+        )
 
     def download_files(self) -> list[bytes]:
         """
@@ -91,3 +105,71 @@ class PipelinesController:
         """
         self.download_files()
         self.save_files_to_database()
+
+
+class APIController:
+    """
+    Controller for the API in the dds_glossary package.
+
+    Attributes:
+        database_url (str): The URL for the database.
+    """
+
+    def __init__(self, database_url: str):
+        self.engine = init_engine(
+            database_url=database_url,
+            drop_database_flag=False,
+        )
+
+    def get_concept_schemes(self) -> dict[str, list[ConceptScheme]]:
+        """
+        Returns the concept schemes.
+
+        Returns:
+            dict[str, list[ConceptScheme]]: The concept schemes.
+        """
+        return {"concept_schemes": get_concept_schemes(self.engine)}
+
+    def get_concepts_for_scheme(
+        self,
+        concept_scheme_name: str,
+    ) -> dict[str, Union[list[Concept], str]]:
+        """
+        Returns the concepts with relationships for a concept scheme name.
+
+        Args:
+            concept_scheme_name (str): The name of the concept scheme.
+
+        Returns:
+            dict[str, Union[list[Concept], str]]: The concepts with relationships.
+                Or an error message if the concept scheme is not found.
+        """
+        try:
+            return {
+                "concepts": get_concepts_for_scheme(self.engine, concept_scheme_name)
+            }
+        except NoResultFound:
+            return {"error": f"Concept scheme not found: {concept_scheme_name}"}
+
+    def get_relationships_for_concept(
+        self,
+        concept_name: str,
+    ) -> dict[str, Union[list[Relationship], str]]:
+        """
+        Returns the relationships for a concept name.
+
+        Args:
+            concept_name (str): The name of the concept.
+
+        Returns:
+            dict[str, Union[list[Relationship], str]]: The relationships.
+                Or an error message if the concept is not found.
+        """
+        try:
+            return {
+                "relationships": get_relationships_for_concept(
+                    self.engine, concept_name
+                )
+            }
+        except NoResultFound:
+            return {"error": f"Concept not found: {concept_name}"}

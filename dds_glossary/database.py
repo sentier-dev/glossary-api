@@ -2,7 +2,14 @@
 
 from sqlalchemy import ForeignKey, create_engine
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, relationship
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    Session,
+    mapped_column,
+    relationship,
+    selectinload,
+)
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
 from .model import RelationshipTuple
@@ -72,7 +79,7 @@ class Relationship(Base):  # pylint: disable=too-few-public-methods
     )
 
 
-def init_engine(database_url: str, drop_database_flag: bool = True) -> Engine:
+def init_engine(database_url: str, drop_database_flag: bool = False) -> Engine:
     """
     Initialize the database engine for the given `database_url`. If the
     database does not exist, it will be created. If it does exist, it will be
@@ -82,7 +89,7 @@ def init_engine(database_url: str, drop_database_flag: bool = True) -> Engine:
     Args:
         database_url (str): The database URL.
         drop_database_flag (bool): Whether to drop the database before
-            creating it.
+            creating it. Defaults to `False`.
 
     Returns:
         Engine: The database engine.
@@ -135,3 +142,65 @@ def save_concept_scheme_file(
             )
             session.add(relation)
         session.commit()
+
+
+def get_concept_schemes(engine: Engine) -> list[ConceptScheme]:
+    """
+    Get the concept schemes from the database.
+
+    Args:
+        engine (Engine): The database engine.
+
+    Returns:
+        list[ConceptScheme]: The concept schemes.
+    """
+    with Session(engine) as session:
+        return session.query(ConceptScheme).all()
+
+
+def get_concepts_for_scheme(engine: Engine, scheme_name: str) -> list[Concept]:
+    """
+    Get the concepts for a scheme from the database.
+
+    Args:
+        engine (Engine): The database engine.
+        scheme_name (str): The name of the scheme.
+
+    Returns:
+        list[Concept]: The concepts for the scheme.
+
+    Raises:
+        NoResultFound: If the scheme does not exist in the database.
+    """
+    with Session(engine) as session:
+        return session.query(ConceptScheme).filter_by(name=scheme_name).one().concepts
+
+
+def get_relationships_for_concept(
+    engine: Engine, concept_name: str
+) -> list[Relationship]:
+    """
+    Get the relationships for a concept from the database.
+
+    Args:
+        engine (Engine): The database engine.
+        concept_name (str): The name of the concept.
+
+    Returns:
+        list[Relationship]: The relationships for the concept.
+
+    Raises:
+        NoResultFound: If the concept does not exist in the database.
+    """
+    with Session(engine) as session:
+        concept = session.query(Concept).filter_by(name=concept_name).one()
+        return (
+            session.query(Relationship)
+            .options(selectinload(Relationship.source_concept))
+            .options(selectinload(Relationship.destination_concept))
+            .where(
+                (Relationship.source_concept_id == concept.id)
+                | (Relationship.destination_concept_id == concept.id)
+            )
+            .all()
+        )

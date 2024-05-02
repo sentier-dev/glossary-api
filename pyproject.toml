@@ -27,12 +27,14 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "appdirs",
+    "fastapi",
     "pandas",
     "psycopg2-binary",
     "python-dotenv",
     "requests",
     "SQLAlchemy>=2.0.0",
     "sqlalchemy-utils",
+    "uvicorn[standard]",
 ]
 
 [project.urls]
