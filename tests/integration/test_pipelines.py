@@ -35,13 +35,13 @@ def get_concept_by_name(session: Session, name: str) -> Optional[Concept]:
     return session.query(Concept).filter_by(name=name).one_or_none()
 
 
-def test_run_pipelines(tmp_path, database_url) -> None:
+def test_run_pipelines(tmp_path, engine) -> None:
     """Test the run_pipelines function."""
     hs_file = HSFile("harmonized-system", "csv", output_dir=tmp_path)
     downloadable_files: list[DownloadableFile] = [hs_file]
 
     controller = PipelinesController(
-        database_url=database_url,
+        engine=engine,
         downloadable_files=downloadable_files,
     )
     controller.run_pipelines()
