@@ -36,35 +36,35 @@ def engine_init_checks(engine: Engine) -> None:
     assert inspector.has_table("relationships")
 
 
-def test_init_engine_database_not_exists_no_drop(database_url) -> None:
+def test_init_engine_database_not_exists_no_drop() -> None:
     """Test the init_engine function."""
-    engine = init_engine(database_url, drop_database_flag=False)
+    engine = init_engine(drop_database_flag=False)
     engine_init_checks(engine)
 
 
-def test_init_engine_database_not_exists_drop(database_url) -> None:
+def test_init_engine_database_not_exists_drop() -> None:
     """Test the init_engine function."""
-    engine = init_engine(database_url, drop_database_flag=True)
+    engine = init_engine(drop_database_flag=True)
     engine_init_checks(engine)
 
 
-def test_init_engine_database_exists_no_drop(database_url) -> None:
+def test_init_engine_database_exists_no_drop() -> None:
     """Test the init_engine function."""
-    engine = init_engine(database_url, drop_database_flag=False)
-    engine = init_engine(database_url, drop_database_flag=False)
+    engine = init_engine(drop_database_flag=False)
+    engine = init_engine(drop_database_flag=False)
     engine_init_checks(engine)
 
 
-def test_init_engine_database_exists_drop(database_url) -> None:
+def test_init_engine_database_exists_drop() -> None:
     """Test the init_engine function."""
-    engine = init_engine(database_url, drop_database_flag=False)
-    engine = init_engine(database_url, drop_database_flag=True)
+    engine = init_engine(drop_database_flag=False)
+    engine = init_engine(drop_database_flag=True)
     engine_init_checks(engine)
 
 
-def test_save_concept_scheme_file(database_url) -> None:
+def test_save_concept_scheme_file() -> None:
     """Test the save_concept_scheme_file function."""
-    engine = init_engine(database_url, drop_database_flag=True)
+    engine = init_engine(drop_database_flag=True)
     concept_scheme_name = "test"
     concepts_names = ["a", "b", "c"]
     relationship_tuples = [

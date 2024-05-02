@@ -1,17 +1,16 @@
 """Controller classes for the dds_glossary package."""
 
-from typing import Optional, Union
+from http import HTTPStatus
+from typing import Optional
 
+from fastapi.responses import JSONResponse
+from sqlalchemy import Engine
 from sqlalchemy.exc import NoResultFound
 
 from .database import (
-    Concept,
-    ConceptScheme,
-    Relationship,
     get_concept_schemes,
     get_concepts_for_scheme,
     get_relationships_for_concept,
-    init_engine,
     save_concept_scheme_file,
 )
 from .model import (
@@ -52,13 +51,14 @@ class PipelinesController:
     Controller for the pipelines in the dds_glossary package.
 
     Attributes:
+        engine (Engine): The SQLAlchemy engine.
         downloadable_files (list[DownloadableFile]): The files to download.
         timeout (int): The timeout for downloading the files.
     """
 
     def __init__(
         self,
-        database_url: str,
+        engine: Engine,
         downloadable_files: Optional[list[DownloadableFile]] = None,
         timeout: int = 10,
     ):
@@ -67,10 +67,7 @@ class PipelinesController:
 
         self.downloadable_files = downloadable_files
         self.timeout = timeout
-        self.engine = init_engine(
-            database_url=database_url,
-            drop_database_flag=True,
-        )
+        self.engine = engine
 
     def download_files(self) -> list[bytes]:
         """
@@ -112,49 +109,53 @@ class APIController:
     Controller for the API in the dds_glossary package.
 
     Attributes:
-        database_url (str): The URL for the database.
+        engine (Engine): The SQLAlchemy engine.
     """
 
-    def __init__(self, database_url: str):
-        self.engine = init_engine(
-            database_url=database_url,
-            drop_database_flag=False,
-        )
+    def __init__(self, engine: Engine):
+        self.engine = engine
 
-    def get_concept_schemes(self) -> dict[str, list[ConceptScheme]]:
+    def get_concept_schemes(self) -> JSONResponse:
         """
         Returns the concept schemes.
 
         Returns:
-            dict[str, list[ConceptScheme]]: The concept schemes.
+            JSONResponse: The concept schemes.
         """
-        return {"concept_schemes": get_concept_schemes(self.engine)}
+        return JSONResponse(
+            content={"concept_schemes": get_concept_schemes(self.engine)},
+            media_type="application/json",
+            status_code=HTTPStatus.OK,
+        )
 
-    def get_concepts_for_scheme(
-        self,
-        concept_scheme_name: str,
-    ) -> dict[str, Union[list[Concept], str]]:
+    def get_concepts_for_scheme(self, concept_scheme_name: str) -> JSONResponse:
         """
-        Returns the concepts with relationships for a concept scheme name.
+        Returns the concepts for a concept scheme name.
 
         Args:
             concept_scheme_name (str): The name of the concept scheme.
 
         Returns:
-            dict[str, Union[list[Concept], str]]: The concepts with relationships.
-                Or an error message if the concept scheme is not found.
+            JSONResponse: The concepts.
         """
         try:
-            return {
-                "concepts": get_concepts_for_scheme(self.engine, concept_scheme_name)
-            }
+            return JSONResponse(
+                content={
+                    "concepts": get_concepts_for_scheme(
+                        self.engine, concept_scheme_name
+                    )
+                },
+                media_type="application/json",
+                status_code=HTTPStatus.OK,
+            )
         except NoResultFound:
-            return {"error": f"Concept scheme not found: {concept_scheme_name}"}
+            return JSONResponse(
+                content={"error": f"Concept scheme not found: {concept_scheme_name}"},
+                media_type="application/json",
+                status_code=HTTPStatus.NOT_FOUND,
+            )
 
-    def get_relationships_for_concept(
-        self,
-        concept_name: str,
-    ) -> dict[str, Union[list[Relationship], str]]:
+    def get_relationships_for_concept(self, concept_name: str) -> JSONResponse:
         """
         Returns the relationships for a concept name.
 
@@ -162,14 +163,20 @@ class APIController:
             concept_name (str): The name of the concept.
 
         Returns:
-            dict[str, Union[list[Relationship], str]]: The relationships.
-                Or an error message if the concept is not found.
-        """
+            JSONResponse: The relationships."""
         try:
-            return {
-                "relationships": get_relationships_for_concept(
-                    self.engine, concept_name
-                )
-            }
+            return JSONResponse(
+                content={
+                    "relationships": get_relationships_for_concept(
+                        self.engine, concept_name
+                    )
+                },
+                media_type="application/json",
+                status_code=HTTPStatus.OK,
+            )
         except NoResultFound:
-            return {"error": f"Concept not found: {concept_name}"}
+            return JSONResponse(
+                content={"error": f"Concept not found: {concept_name}"},
+                media_type="application/json",
+                status_code=HTTPStatus.NOT_FOUND,
+            )
