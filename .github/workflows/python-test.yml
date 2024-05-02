@@ -29,8 +29,7 @@ jobs:
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
-      DATABASE_URL: |
-        postgresql+psycopg://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}
+      DATABASE_URL: postgresql+psycopg://user:password@localhost:5432/testdb
 
     strategy:
       matrix:
@@ -41,9 +40,9 @@ jobs:
       postgres:
         image: postgres
         env:
-          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: testdb
+          POSTGRES_USER: user
+          POSTGRES_PASSWORD: password
         ports:
           - 5432:5432
         # Use health checks to wait until postgres is ready
