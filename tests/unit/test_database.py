@@ -36,6 +36,14 @@ def engine_init_checks(engine: Engine) -> None:
     assert inspector.has_table("relationships")
 
 
+def test_init_engine_env_var_not_found(monkeypatch) -> None:
+    """Test the init_engine function."""
+    monkeypatch.delenv("DATABASE_URL", raising=False)
+    with pytest.raises(ValueError) as exc_info:
+        init_engine()
+    assert "DATABASE_URL" in str(exc_info.value)
+
+
 def test_init_engine_database_not_exists_no_drop() -> None:
     """Test the init_engine function."""
     engine = init_engine(drop_database_flag=False)
