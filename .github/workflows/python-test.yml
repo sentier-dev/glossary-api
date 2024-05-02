@@ -28,6 +28,9 @@ jobs:
   build:
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    env:
+      DATABASE_URL: |
+        postgresql+psycopg://${{ secrets.POSTGRES_USER }}:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/${{ secrets.POSTGRES_DB }}
 
     strategy:
       matrix:
@@ -38,9 +41,9 @@ jobs:
       postgres:
         image: postgres
         env:
-          POSTGRES_DB: testdb
-          POSTGRES_USER: user
-          POSTGRES_PASSWORD: password
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
         ports:
           - 5432:5432
         # Use health checks to wait until postgres is ready
@@ -71,13 +74,9 @@ jobs:
 
       - name: Run unit tests
         run: pytest tests/unit
-        env:
-          DATABASE_URL: postgresql+psycopg://user:password@localhost:5432/testdb
 
       - name: Run integrations tests
         run: pytest tests/integration
-        env:
-          DATABASE_URL: postgresql+psycopg://user:password@localhost:5432/testdb
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
