@@ -8,7 +8,7 @@ from .database import init_engine
 
 app = FastAPI()
 engine = init_engine()
-controller = APIController(engine)
+api_controller = APIController(engine)
 
 
 @app.get("/schemes")
@@ -18,7 +18,7 @@ def get_concept_schemes() -> JSONResponse:
     Returns:
         JSONResponse: The concept schemes.
     """
-    return controller.get_concept_schemes()
+    return api_controller.get_concept_schemes()
 
 
 @app.get("/schemes/{scheme_name}")
@@ -31,7 +31,7 @@ def get_concepts_for_scheme(scheme_name: str) -> JSONResponse:
     Returns:
         JSONResponse: The concepts for the scheme.
     """
-    return controller.get_concepts_for_scheme(concept_scheme_name=scheme_name)
+    return api_controller.get_concepts_for_scheme(concept_scheme_name=scheme_name)
 
 
 @app.get("/concepts/{concept_name}")
@@ -44,4 +44,4 @@ def get_relationships_for_concept(concept_name: str) -> JSONResponse:
     Returns:
         JSONResponse: The relationships for the concept.
     """
-    return controller.get_relationships_for_concept(concept_name=concept_name)
+    return api_controller.get_relationships_for_concept(concept_name=concept_name)
