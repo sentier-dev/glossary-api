@@ -29,7 +29,7 @@ dependencies = [
     "appdirs",
     "fastapi",
     "pandas",
-    "psycopg2-binary",
+    "psycopg",
     "python-dotenv",
     "requests",
     "SQLAlchemy>=2.0.0",
