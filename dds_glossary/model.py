@@ -1,364 +1,325 @@
 """Model classes for the dds_glossary package."""
 
-from dataclasses import dataclass, field
-from io import BytesIO
-from os import getenv
-from pathlib import Path
+from enum import Enum
 from typing import ClassVar
-from zipfile import ZipFile
 
-import requests
-from appdirs import user_data_dir
-from pandas import read_csv
-
-from .errors import MissingAPIKeyError
+from sqlalchemy import ForeignKey
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
-@dataclass
-class DownloadableFile:
-    """
-    Represents a downloadable file. This class should not be instantiated
-    directly. Instead, use one of the subclasses.
+class SemanticRelationType(Enum):
+    """Enum class for the types of semantic relations.
 
     Attributes:
-        name (str): The name of the file.
-        extension (str): The file extension.
-        output_dir (Path): The output directory. Defaults to the user data
-            directory of the dds_glossary package.
+        BROADER (str): The broader semantic relation.
+        NARROWER (str): The narrower semantic relation.
+        RELATED (str): The related semantic relation.
+        BROADER_TRANSITIVE (str): The transitive broader semantic relation
+        NARROWER_TRANSITIVE (str): The transitive narrower semantic relation.
     """
 
-    name: str
-    extension: str
-    output_dir: Path = field(
-        default_factory=lambda: Path(user_data_dir("dds_glossary")),
-        kw_only=True,
-    )
+    BROADER: str = "broader"
+    NARROWER: str = "narrower"
+    RELATED: str = "related"
+    BROADER_TRANSITIVE: str = "broaderTransitive"
+    NARROWER_TRANSITIVE: str = "narrowerTransitive"
 
-    base_url: ClassVar[str] = ""
 
-    @property
-    def file_name(self) -> str:
-        """Returns the name of the file.
+class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
+    """Base class for all models."""
 
-        Returns:
-            str: The name of the file.
+    type_annotation_map: ClassVar[dict] = {dict[str, str]: JSONB}
+    xml_namespace: ClassVar[str] = "{http://www.w3.org/XML/1998/namespace}"
+
+
+class ConceptScheme(Base):
+    """
+    A SKOS concept scheme can be viewed as an aggregation of one or more SKOS concepts.
+    Semantic relationships (links) between those concepts may also be viewed as part of
+    a concept scheme. This definition is, however, meant to be suggestive rather than
+    restrictive, and there is some flexibility in the formal data model.
+
+    The notion of a concept scheme is useful when dealing with data from an unknown
+    source, and when dealing with data that describes two or more different knowledge
+    organization systems.
+
+    For more information, check: https://www.w3.org/TR/skos-reference/#schemes.
+
+    Attributes:
+        iri (str): The Internationalized Resource Identifier of the concept scheme.
+        notation (str): The notation of the concept scheme.
+        scopeNote (str): The scope note of the concept scheme.
+        prefLabels (dict[str, str]): The preferred labels of the concept scheme. This
+            is a dictionary where the key is the language code and the value is the
+            label in that language. To get the preferred label in a specific language,
+            use the `get_pref_label` method.
+        concepts (List[Concept]): The concepts of the concept scheme.
+    """
+
+    __tablename__ = "concept_schemes"
+
+    iri: Mapped[str] = mapped_column(primary_key=True)
+    notation: Mapped[str] = mapped_column()
+    scopeNote: Mapped[str] = mapped_column()
+    prefLabels: Mapped[dict[str, str]] = mapped_column()
+
+    concepts: Mapped[list["Concept"]] = relationship(back_populates="scheme")
+
+    @classmethod
+    def from_xml_element(cls, element) -> "ConceptScheme":
         """
-        return f"{self.name}.{self.extension}"
-
-    @property
-    def file_path(self) -> Path:
-        """Returns the path of the file.
-
-        Returns:
-            Path: The path of the file.
-        """
-        return self.output_dir / self.file_name
-
-    @property
-    def concept_scheme_name(self) -> str:
-        """Returns the name of the concept scheme.
-
-        Returns:
-            str: The name of the concept scheme.
-        """
-        return self.name
-
-    @property
-    def concepts_names(self) -> list[str]:
-        """Returns the names of the concepts.
-
-        Returns:
-            list[str]: The names of the concepts.
-        """
-        return []
-
-    @property
-    def relationship_tuples(self) -> list["RelationshipTuple"]:
-        """Returns the relationship tuples.
-
-        Returns:
-            list[RelationshipTuple]: The relationship tuples.
-        """
-        return []
-
-    def get_url(self) -> str:
-        """Returns the URL of the file to download.
-
-        Returns:
-            str: The URL of the file.
-        """
-        return self.__class__.base_url
-
-    def get_params(self) -> dict:
-        """Returns the parameters to be used in the request.
-
-        Returns:
-            dict: The parameters to be used in the request.
-        """
-        return {}
-
-    def get_headers(self) -> dict:
-        """Returns the headers to be used in the request.
-
-        Returns:
-            dict: The headers to be used in the request.
-        """
-        return {}
-
-    def download(
-        self,
-        timeout: int = 10,
-    ) -> bytes:
-        """Retrieve a file from the given URL, save it to a file and return the
-        file as bytes.
+        Return a ConceptScheme instance from an XML element.
 
         Args:
-            timeout (int): The number of seconds to wait for the server to send
-                data before giving up. Defaults to 10.
+            element (ElementBase): The XML element to parse.
 
         Returns:
-            bytes: The file content as bytes.
+            ConceptScheme: The parsed ConceptScheme instance.
         """
-        response = requests.get(
-            url=self.get_url(),
-            params=self.get_params(),
-            headers=self.get_headers(),
-            timeout=timeout,
+        return ConceptScheme(
+            iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
+            notation=element.find("core:notation", namespaces=element.nsmap),
+            scopeNote=element.find("core:scopeNote", namespaces=element.nsmap),
+            prefLabels={
+                label.get(f"{cls.xml_namespace}lang"): label.text
+                for label in element.findall("core:prefLabel", namespaces=element.nsmap)
+            },
         )
-        response.raise_for_status()
-        file_bytes = response.content
 
-        if response.headers["Content-Type"] == "application/zip":
-            zip_bytes = BytesIO(response.content)
-            with ZipFile(zip_bytes) as zipped_file:
-                zip_file_name = zipped_file.namelist()[0]
-                with zipped_file.open(zip_file_name) as file_handler:
-                    file_bytes = file_handler.read()
+    def get_pref_label(self, lang: str = "en") -> str:
+        """
+        Return the preferred label in the specified language. If the preferred label is
+        not available in the specified language, return the preferred label in English.
+        If the preferred label is not available in English, return an empty string.
 
-        with open(self.file_path, "wb") as file_handler:
-            file_handler.write(file_bytes)
-
-        return file_bytes
-
-
-@dataclass
-class NERCFile(DownloadableFile):
-    """Represents a file hosted on the Natural Environment Research Council
-    (NERC) Vocabulary Server.
-
-    Attributes:
-        base_url (ClassVar[str]): The base URL for NERC files.
-        media_type (NERCMediaType): The media type of the file.
-        profile (str): The profile of the NERC file. Defaults to
-            "skos". For the full list of available profiles, visit:
-            https://vocab.nerc.ac.uk/collection/P06/current/?_profile=alt.
-    """
-
-    media_type: str = "application/rdf+xml"
-    profile: str = "skos"
-
-    base_url: ClassVar[str] = "https://vocab.nerc.ac.uk/collection/P06/current/"
-
-    def get_params(self) -> dict:
-        """Returns the parameters to be used in the request.
+        Args:
+            lang (str): The language code of the preferred label. Defaults to English
+                ("en").
 
         Returns:
-            dict: The parameters to be used in the request.
+            str: The preferred label in the specified language if available, otherwise
+                in English.
         """
-        return {
-            "_profile": self.profile,
-            "_mediatype": self.media_type,
-        }
+        return self.prefLabels.get(lang, self.prefLabels.get("en", ""))
 
 
-@dataclass
-class CPCFile(DownloadableFile):
-    """Represents a file hosted on the FAO Central Product Classification (CPC)
-    website.
+class Concept(Base):
+    """
+    A SKOS concept can be viewed as an idea or notion; a unit of thought. However, what
+    constitutes a unit of thought is subjective, and this definition is meant to be
+    suggestive, rather than restrictive.
+
+    The notion of a SKOS concept is useful when describing the conceptual or
+    intellectual structure of a knowledge organization system, and when referring to
+    specific ideas or meanings established within a KOS.
+
+    Note that, because SKOS is designed to be a vehicle for representing semi-formal
+    KOS, such as thesauri and classification schemes, a certain amount of flexibility
+    has been built in to the formal definition of this class.
+
+    For more information, check: https://www.w3.org/TR/skos-reference/#concepts.
 
     Attributes:
-        base_url (ClassVar[str]): The base URL for CPC files.
-        version (str): The version of the CPC file. Defaults to "2.1".
+        iri (str): The Internationalized Resource Identifier of the concept.
+        identifier (str): The identifier of the concept.
+        notation (str): The notation of the concept.
+        prefLabels (dict[str, str]): The preferred labels of the concept. This is a
+            dictionary where the key is the language code and the value is the label in
+            that language. To get the preferred label in a specific language, use the
+            `get_pref_label` method.
+        altLabels (dict[str, str]): The alternative labels of the concept. This is a
+            dictionary where the key is the language code and the value is the label in
+            that language. To get the alternative label in a specific language, use the
+            `get_alt_label` method.
+        scopeNotes (dict[str, str]): The scope notes of the concept.
+            This is a dictionary where the key is the language code and the value is the
+            note in that language. To get the scope note in a specific language, use the
+            `get_scope_note` method.
+        scheme_iri (str): The Internationalized Resource Identifier of the concept
+            scheme to which the concept belongs.
+        scheme (ConceptScheme): The concept scheme to which the concept belongs.
     """
 
-    version: str = "2.1"
+    __tablename__ = "concepts"
 
-    base_url: ClassVar[str] = (
-        "https://storage.googleapis.com/fao-datalab-caliper/Downloads/"
+    iri: Mapped[str] = mapped_column(primary_key=True)
+    identifier: Mapped[str] = mapped_column()
+    notation: Mapped[str] = mapped_column()
+    prefLabels: Mapped[dict[str, str]] = mapped_column()
+    altLabels: Mapped[dict[str, str]] = mapped_column()
+    scopeNotes: Mapped[dict[str, str]] = mapped_column()
+
+    scheme_iri: Mapped[str] = mapped_column(ForeignKey("concept_schemes.iri"))
+    scheme: Mapped[ConceptScheme] = relationship(back_populates="concepts")
+
+    @classmethod
+    def from_xml_element(cls, element) -> "Concept":
+        """
+        Return a Concept instance from an XML element.
+
+        Args:
+            element (ElementBase): The XML element to parse.
+
+        Returns:
+            Concept: The parsed Concept instance.
+        """
+        return Concept(
+            iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
+            identifier=element.find("core:identifier", namespaces=element.nsmap),
+            notation=element.find("core:notation", namespaces=element.nsmap),
+            prefLabels={
+                label.get(f"{cls.xml_namespace}lang"): label.text
+                for label in element.findall("core:prefLabel", namespaces=element.nsmap)
+            },
+            altLabels={
+                label.get(f"{cls.xml_namespace}lang"): label.text
+                for label in element.findall("core:altLabel", namespaces=element.nsmap)
+            },
+            scopeNotes={
+                note.get(f"{cls.xml_namespace}lang"): note.text
+                for note in element.findall("core:scopeNote", namespaces=element.nsmap)
+            },
+            scheme_iri=element.find("core:inScheme", namespaces=element.nsmap).get(
+                f"{{{element.nsmap['rdf']}}}resource"
+            ),
+        )
+
+    def get_pref_label(self, lang: str = "en") -> str:
+        """
+        Return the preferred label in the specified language. If the preferred label is
+        not available in the specified language, return the preferred label in English.
+        If the preferred label is not available in English, return an empty string.
+
+        Args:
+            lang (str): The language code of the preferred label. Defaults to English
+                ("en").
+
+        Returns:
+            str: The preferred label in the specified language if available, otherwise
+                in English.
+        """
+        return self.prefLabels.get(lang, self.prefLabels.get("en", ""))
+
+    def get_alt_label(self, lang: str = "en") -> str:
+        """
+        Return the alternative label in the specified language. If the alternative label
+        is not available in the specified language, return the alternative label in
+        English. If the alternative label is not available in English, return an empty
+        string.
+
+        Args:
+            lang (str): The language code of the alternative label. Defaults to English
+                ("en").
+
+        Returns:
+            str: The alternative label in the specified language if available, otherwise
+                in English.
+        """
+        return self.altLabels.get(lang, self.altLabels.get("en", ""))
+
+    def get_scope_note(self, lang: str = "en") -> str:
+        """
+        Return the scope note in the specified language. If the scope note is not
+        available in the specified language, return the scope note in English. If the
+        scope note is not available in English, return an empty string.
+
+        Args:
+            lang (str): The language code of the scope note. Defaults to English
+                ("en").
+
+        Returns:
+            str: The scope note in the specified language if available, otherwise in
+                English.
+        """
+        return self.scopeNotes.get(lang, self.scopeNotes.get("en", ""))
+
+
+class SemanticRelation(Base):  # pylint: disable=too-few-public-methods
+    """
+    SKOS semantic relations are links between SKOS concepts, where the link is
+    inherent in the meaning of the linked concepts.
+
+    The Simple Knowledge Organization System distinguishes between two basic categories
+    of semantic relation: hierarchical and associative. A hierarchical link between two
+    concepts indicates that one is in some way more general ("broader") than the other
+    ("narrower"). An associative link between two concepts indicates that the two are
+    inherently "related", but that one is not in any way more general than the other.
+
+    The properties skos:broader and skos:narrower are used to assert a direct
+    hierarchical link between two SKOS concepts. A triple <A> skos:broader <B> asserts
+    that <B>, the object of the triple, is a broader concept than <A>, the subject of
+    the triple. Similarly, a triple <C> skos:narrower <D> asserts that <D>, the object
+    of the triple, is a narrower concept than <C>, the subject of the triple.
+
+    By convention, skos:broader and skos:narrower are only used to assert a direct
+    (i.e., immediate) hierarchical link between two SKOS concepts. This provides
+    applications with a convenient and reliable way to access the direct broader and
+    narrower links for any given concept. Note that, to support this usage convention,
+    the properties skos:broader and skos:narrower are not declared as transitive
+    properties.
+
+    Some applications need to make use of both direct and indirect hierarchical links
+    between concepts, for instance to improve search recall through query expansion.
+    For this purpose, the properties skos:broaderTransitive and skos:narrowerTransitive
+    are provided. A triple <A> skos:broaderTransitive <B> represents a direct or
+    indirect hierarchical link, where <B> is a broader "ancestor" of <A>. Similarly a
+    triple <C> skos:narrowerTransitive <D> represents a direct or indirect hierarchical
+    link, where <D> is a narrower "descendant" of <C>.
+
+    By convention, the properties skos:broaderTransitive and skos:narrowerTransitive
+    are not used to make assertions. Rather, these properties are used to infer the
+    transitive closure of the hierarchical links, which can then be used to access
+    direct or indirect hierarchical links between concepts.
+
+    The property skos:related is used to assert an associative link between two SKOS
+    concepts.
+
+    For more information, check:
+    https://www.w3.org/TR/skos-reference/#semantic-relations.
+
+    Attributes:
+        type (SemanticRelationType): The type of the semantic relation.
+        source_concept_iri (str): The Internationalized Resource Identifier of the
+            source concept.
+        target_concept_iri (str): The Internationalized Resource Identifier of the
+            target concept.
+        source_concept (Concept): The source concept of the semantic relation.
+        target_concept (Concept): The target concept of the semantic relation.
+    """
+
+    __tablename__ = "semantic_relations"
+
+    type: Mapped[SemanticRelationType] = mapped_column()
+
+    source_concept_iri: Mapped[str] = mapped_column(
+        ForeignKey("concepts.iri"), primary_key=True
     )
-
-    @property
-    def file_suburl(self) -> str:
-        """Returns the suburl of the file.
-
-        Returns:
-            str: The suburl of the file.
-        """
-        return (
-            f"{self.name.upper()}v{self.version}/"
-            f"{self.name.upper()}{self.version.replace('.', '')}"
-            f"-core.{self.extension}"
-        )
-
-    def get_url(self) -> str:
-        """Returns the URL of the file to download.
-
-        Returns:
-            str: The URL of the file.
-        """
-        return f"{CPCFile.base_url}{self.file_suburl}"
-
-
-@dataclass
-class OBOEFile(DownloadableFile):
-    """Represents a file hosted on the Extensible Observation Ontology
-    (OBOE) website.
-
-    Attributes:
-        base_url (ClassVar[str]): The base URL for OBOE files.
-        API_ENV_KEY (ClassVar[str]): The environment variable key for the OBOE
-            API key.
-    """
-
-    base_url: ClassVar[str] = (
-        "https://data.bioontology.org/ontologies/OBOE/submissions/4/download"
+    target_concept_iri: Mapped[str] = mapped_column(
+        ForeignKey("concepts.iri"), primary_key=True
     )
-    API_ENV_KEY: ClassVar[str] = "OBOE_API_KEY"
+    source_concept: Mapped["Concept"] = relationship(foreign_keys=[source_concept_iri])
+    target_concept: Mapped["Concept"] = relationship(foreign_keys=[target_concept_iri])
 
-    def get_params(self) -> dict:
-        """Returns the parameters to be used in the request.
+    @classmethod
+    def from_xml_element(cls, element) -> list["SemanticRelation"]:
+        """
+        Return a list of SemanticRelation instances from an XML element.
+
+        Args:
+            element (ElementBase): The XML element to parse.
 
         Returns:
-            dict: The parameters to be used in the request.
+            list[SemanticRelation]: The parsed list of SemanticRelation instances.
         """
-        api_key = getenv(OBOEFile.API_ENV_KEY)
-        if not api_key:
-            raise MissingAPIKeyError(OBOEFile.base_url)
-        return {"apikey": api_key}
-
-
-@dataclass
-class OOUMFile(DownloadableFile):
-    """Represents a file hosted on the Ontology of Units of Measure (OOUM)
-    website.
-
-    Attributes:
-        base_url (ClassVar[str]): The base URL for OOUM files.
-    """
-
-    base_url: ClassVar[str] = "http://www.ontology-of-units-of-measure.org/"
-
-    def get_url(self) -> str:
-        """Returns the URL of the file to download.
-
-        Returns:
-            str: The URL of the file.
-        """
-        return f"{OOUMFile.base_url}data/{self.file_name}"
-
-    def get_headers(self) -> dict:
-        """Returns the headers to be used in the request.
-
-        Returns:
-            dict: The headers to be used in the request.
-        """
-        return {"Accept": "text/html"}
-
-
-@dataclass
-class GitHubFile(DownloadableFile):
-    """Represents a file hosted on GitHub.
-
-    Attributes:
-        base_url (ClassVar[str]): The base URL for GitHub files.
-        user (str): The GitHub username.
-        repo (str): The GitHub repository name.
-        branch (str): The branch name.
-        name (str): The file name.
-        extension (str): The file extension.
-    """
-
-    user: str
-    repo: str
-    branch: str
-    path: str
-
-    base_url: ClassVar[str] = "https://raw.githubusercontent.com"
-
-    def get_url(self) -> str:
-        """Returns the URL of the file to download.
-
-        Returns:
-            str: The URL of the file.
-        """
-        return (
-            f"{GitHubFile.base_url}/{self.user}/{self.repo}/"
-            f"{self.branch}/{self.path}{self.name}"
-            f".{self.extension}"
-        )
-
-
-@dataclass
-class HSFile(GitHubFile):
-    """Represents a file hosted on the Harmonized System (HS) GitHub
-    repository.
-
-    Attributes:
-        user (str): The GitHub username. Defaults to "datasets".
-        repo (str): The GitHub repository name. Defaults to "harmonized-system".
-        branch (str): The branch name. Defaults to "master".
-        path (str): The path to the file. Defaults to "data/".
-    """
-
-    user: str = "datasets"
-    repo: str = "harmonized-system"
-    branch: str = "master"
-    path: str = "data/"
-
-    @property
-    def concepts_names(self) -> list[str]:
-        """Returns the names of the concepts.
-
-        Returns:
-            list[str]: The names of the concepts.
-        """
-        df = read_csv(self.file_path)
-        return df["description"].unique().tolist()
-
-    @property
-    def relationship_tuples(self) -> list["RelationshipTuple"]:
-        """Returns the relationship tuples.
-
-        Returns:
-            list[RelationshipTuple]: The relationship tuples.
-        """
-        df = read_csv(self.file_path)
-        relationship_tuples: list[RelationshipTuple] = []
-        for _, row in df.iterrows():
-            parent = df[df.hscode == row["parent"]]
-            if not parent.empty:
-                destination_concept = parent.iloc[0]["description"]
-                relationship_tuples.append(
-                    RelationshipTuple(
-                        source_concept=row["description"],
-                        destination_concept=destination_concept,
-                        relationship_type="broader",
-                    )
-                )
-        return relationship_tuples
-
-
-@dataclass
-class RelationshipTuple:
-    """
-    Represents a relationship tuple.
-
-    Attributes:
-        source_concept (str): The source concept.
-        destination_concept (str): The destination concept.
-        relationship_type (str): The type of relationship.
-    """
-
-    source_concept: str
-    destination_concept: str
-    relationship_type: str
+        return [
+            SemanticRelation(
+                type=relation_type,
+                source_concept_iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
+                target_concept_iri=element.get(f"{{{element.nsmap['rdf']}}}resource"),
+            )
+            for relation_type in SemanticRelationType
+            for relation in element.findall(
+                f"core:{relation_type.value}", namespaces=element.nsmap
+            )
+        ]

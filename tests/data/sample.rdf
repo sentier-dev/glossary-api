@@ -1,0 +1,58 @@
+<?xml version="1.0"?>
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+    xmlns:xsd="http://www.w3.org/2001/XMLSchema#"
+    xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#"
+    xmlns:owl="http://www.w3.org/2002/07/owl#"
+    xml:base="http://publications.europa.eu/resource/distribution/combined-nomenclature-2024/20240425-0/rdf/skos_core/ESTAT-CN2024.rdf"
+    xmlns="http://publications.europa.eu/resource/distribution/combined-nomenclature-2024/20240425-0/rdf/skos_core/ESTAT-CN2024.rdf#"
+    xmlns:core="http://www.w3.org/2004/02/skos/core#"
+    xmlns:m8g="http://data.europa.eu/m8g/"
+    xmlns:x_1.1="http://purl.org/dc/elements/1.1/"
+    xmlns:xkos="http://rdf-vocabulary.ddialliance.org/xkos#"
+    xmlns:onto="http://data.europa.eu/eli/ontology#"
+    xmlns:term="http://purl.org/dc/terms/"
+    xmlns:dct="http://purl.org/dc/terms/dct:"
+    xmlns:sche="http://schema.org/">
+
+    <core:Concept rdf:about="http://data.europa.eu/xsp/cn2024/020321000080">
+        <x_1.1:identifier rdf:datatype="http://www.w3.org/2001/XMLSchema#string">020321000080</x_1.1:identifier>
+        <core:notation rdf:datatype="http://www.w3.org/2001/XMLSchema#string">0203 21</core:notation>
+        <core:prefLabel xml:lang="en">0203 21 -- Carcases and half-carcases</core:prefLabel>
+        <core:prefLabel xml:lang="sk">0203 21 -- Trupy a polovičky trupov</core:prefLabel>
+        <core:prefLabel xml:lang="et">0203 21 -- rümbad ja poolrümbad</core:prefLabel>
+        <core:prefLabel xml:lang="mt">0203 21 -- Karkassi u nofs karkassi</core:prefLabel>
+        <core:altLabel xml:lang="en">-- Carcases and half-carcases</core:altLabel>
+        <core:altLabel xml:lang="sk">-- Trupy a polovičky trupov</core:altLabel>
+        <core:altLabel xml:lang="et">-- rümbad ja poolrümbad</core:altLabel>
+        <core:altLabel xml:lang="mt">-- Karkassi u nofs karkassi</core:altLabel>
+        <core:scopeNote xml:lang="en">Frozen carcases and half-carcases of swine</core:scopeNote>
+        <core:scopeNote xml:lang="fr">Carcasses ou demi-carcasses, de porcins, congelées</core:scopeNote>
+        <core:scopeNote xml:lang="de">Tierkörper oder halbe Tierkörper, von Schweinen, gefroren</core:scopeNote>
+        <core:scopeNote xml:lang="es">Canales o medias canales de porcinos, congeladas</core:scopeNote>
+        <core:inScheme rdf:resource="http://data.europa.eu/xsp/cn2024/cn2024"/>
+        <core:broader rdf:resource="http://data.europa.eu/xsp/cn2024/020321000010"/>
+    </core:Concept>
+
+    <core:Concept rdf:about="http://data.europa.eu/xsp/cn2024/020321000010">
+        <x_1.1:identifier rdf:datatype="http://www.w3.org/2001/XMLSchema#string">020321000010</x_1.1:identifier>
+        <core:prefLabel xml:lang="en">- Frozen</core:prefLabel>
+        <core:prefLabel xml:lang="sk">- Mrazené</core:prefLabel>
+        <core:prefLabel xml:lang="et">- külmutatud</core:prefLabel>
+        <core:prefLabel xml:lang="mt">- Iffriżati</core:prefLabel>
+        <core:inScheme rdf:resource="http://data.europa.eu/xsp/cn2024/cn2024"/>
+        <core:altLabel xml:lang="en">- Frozen</core:altLabel>
+        <core:altLabel xml:lang="fr">- congelées</core:altLabel>
+        <core:altLabel xml:lang="de">- gefroren</core:altLabel>
+        <core:altLabel xml:lang="es">- Congelada</core:altLabel>
+  </core:Concept>
+
+    <core:ConceptScheme rdf:about="http://data.europa.eu/xsp/cn2024/cn2024">
+        <core:notation rdf:datatype="http://www.w3.org/2001/XMLSchema#string">CN 2024</core:notation>
+        <core:prefLabel xml:lang="en">Combined Nomenclature, 2024 (CN 2024)</core:prefLabel>
+        <core:prefLabel xml:lang="sk">Kombinovaná Nomenklatúra, 2024 (KN 2024)</core:prefLabel>
+        <core:prefLabel xml:lang="et">Kombineeritud Nomenklatuur, 2024 (KN 2024)</core:prefLabel>
+        <core:prefLabel xml:lang="mt">Nomenklatura Magħquda, 2024 (NM 2024)</core:prefLabel>
+        <core:scopeNote rdf:datatype="http://www.w3.org/2001/XMLSchema#anyURI">http://publications.europa.eu/resource/oj/JOC_2019_119_R_0001</core:scopeNote>
+    </core:ConceptScheme>
+
+</rdf:RDF>
