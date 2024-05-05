@@ -27,7 +27,7 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "appdirs",
-    "defusedxml",
+    "defusedxml==0.7.1",
     "fastapi",
     "lxml",
     "psycopg",
