@@ -79,8 +79,8 @@ class ConceptScheme(Base):
         """
         return ConceptScheme(
             iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
-            notation=element.find("core:notation", namespaces=element.nsmap),
-            scopeNote=element.find("core:scopeNote", namespaces=element.nsmap),
+            notation=element.find("core:notation", namespaces=element.nsmap).text,
+            scopeNote=element.find("core:scopeNote", namespaces=element.nsmap).text,
             prefLabels={
                 label.get(f"{cls.xml_namespace}lang"): label.text
                 for label in element.findall("core:prefLabel", namespaces=element.nsmap)
@@ -164,10 +164,13 @@ class Concept(Base):
         Returns:
             Concept: The parsed Concept instance.
         """
+        notation_element = element.find("core:notation", namespaces=element.nsmap)
+        notation = "" if notation_element is None else notation_element.text
+
         return Concept(
             iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
-            identifier=element.find("core:identifier", namespaces=element.nsmap),
-            notation=element.find("core:notation", namespaces=element.nsmap),
+            identifier=element.find("x_1.1:identifier", namespaces=element.nsmap).text,
+            notation=notation,
             prefLabels={
                 label.get(f"{cls.xml_namespace}lang"): label.text
                 for label in element.findall("core:prefLabel", namespaces=element.nsmap)

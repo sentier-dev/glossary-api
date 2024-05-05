@@ -59,6 +59,7 @@ def test_concept_from_xml_element(
 ) -> None:
     """It should return a Concept instance from an XML element."""
     assert concept.iri == "http://data.europa.eu/xsp/cn2024/020321000080"
+    assert concept.identifier == "020321000080"
     assert concept.notation == "0203 21"
     assert concept.prefLabels == {
         "en": "0203 21 -- Carcases and half-carcases",
