@@ -168,4 +168,8 @@ def test_semantic_relation_from_xml_element(
         semantic_relation.source_concept_iri
         == "http://data.europa.eu/xsp/cn2024/020321000080"
     )
+    assert (
+        semantic_relation.target_concept_iri
+        == "http://data.europa.eu/xsp/cn2024/020321000010"
+    )
     assert semantic_relation.type == SemanticRelationType.BROADER

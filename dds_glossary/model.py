@@ -319,7 +319,7 @@ class SemanticRelation(Base):  # pylint: disable=too-few-public-methods
             SemanticRelation(
                 type=relation_type,
                 source_concept_iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
-                target_concept_iri=element.get(f"{{{element.nsmap['rdf']}}}resource"),
+                target_concept_iri=relation.get(f"{{{element.nsmap['rdf']}}}resource"),
             )
             for relation_type in SemanticRelationType
             for relation in element.findall(

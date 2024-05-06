@@ -1,18 +1,17 @@
 """Database classes for the dds_glossary package."""
 
 from os import getenv
-from typing import Optional
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
-from .model import Base, ConceptScheme
+from .model import Base, Concept, ConceptScheme, SemanticRelation
 
 
 def init_engine(
-    database_url: Optional[str] = None,
+    database_url: str | None = None,
     drop_database_flag: bool = False,
 ) -> Engine:
     """
@@ -21,7 +20,7 @@ def init_engine(
     tables if they do not exist.
 
     Args:
-        database_url (Optional[str]): The database URL. If None, use the
+        database_url (str, optional): The database URL. If None, use the
             `DATABASE_URL` environment variable.
         drop_database_flag (bool): Flag to drop the database if it exists.
 
@@ -46,6 +45,28 @@ def init_engine(
     engine = create_engine(database_url)
     Base.metadata.create_all(engine)
     return engine
+
+
+def save_dataset(
+    engine: Engine,
+    concept_schemes: list[ConceptScheme],
+    concepts: list[Concept],
+    semantic_relations: list[SemanticRelation],
+) -> None:
+    """
+    Save a dataset in the database.
+
+    Args:
+        engine (Engine): The database engine.
+        concept_schemes (list[ConceptScheme]): The concept schemes.
+        concepts (list[Concept]): The concepts.
+        semantic_relations (list[SemanticRelation]): The semantic relations.
+    """
+    with Session(engine) as session:
+        session.add_all(concept_schemes)
+        session.add_all(concepts)
+        session.add_all(semantic_relations)
+        session.commit()
 
 
 def get_concept_schemes(engine: Engine) -> list[ConceptScheme]:
