@@ -8,7 +8,7 @@ from defusedxml.lxml import parse as parse_xml
 from requests import RequestException
 from requests import get as get_request
 
-from .database import get_concept_schemes, init_engine, save_dataset
+from .database import get_concept_schemes, get_concepts, init_engine, save_dataset
 from .model import Concept, ConceptScheme, SemanticRelation
 
 
@@ -126,4 +126,20 @@ class GlossaryController:
         return [
             concept_scheme.to_dict(lang=lang)
             for concept_scheme in get_concept_schemes(self.engine)
+        ]
+
+    def get_concepts(self, concept_scheme_iri: str, lang: str = "en") -> list[dict]:
+        """
+        Get the concepts.
+
+        Args:
+            concept_scheme_iri (str): The concept scheme IRI.
+            lang (str): The language. Defaults to "en".
+
+        Returns:
+            list[dict]: The concepts.
+        """
+        return [
+            concept.to_dict(lang=lang)
+            for concept in get_concepts(self.engine, concept_scheme_iri)
         ]

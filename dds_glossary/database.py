@@ -78,3 +78,20 @@ def get_concept_schemes(engine: Engine) -> list[ConceptScheme]:
     """
     with Session(engine) as session:
         return session.query(ConceptScheme).all()
+
+
+def get_concepts(engine: Engine, concept_scheme_iri: str) -> list[Concept]:
+    """
+    Get the concepts from the database.
+
+    Args:
+        engine (Engine): The database engine.
+        concept_scheme_iri (str): The concept scheme IRI.
+
+    Returns:
+        list[Concept]: The concepts.
+    """
+    with Session(engine) as session:
+        return (
+            session.query(Concept).where(Concept.scheme_iri == concept_scheme_iri).all()
+        )

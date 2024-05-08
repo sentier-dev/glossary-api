@@ -5,7 +5,12 @@ from sqlalchemy import inspect
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from dds_glossary.database import get_concept_schemes, init_engine, save_dataset
+from dds_glossary.database import (
+    get_concept_schemes,
+    get_concepts,
+    init_engine,
+    save_dataset,
+)
 from dds_glossary.model import (
     Concept,
     ConceptScheme,
@@ -148,3 +153,35 @@ def test_get_concept_scheme(engine: Engine) -> None:
     concept_schemes = get_concept_schemes(engine)
     assert len(concept_schemes) == 1
     assert concept_schemes[0].iri == iri
+
+
+def test_get_concepts(engine: Engine) -> None:
+    """Test the get_concepts."""
+    concept_scheme_iri = "http://example.org/concept_scheme"
+    concept_iri = "http://example.org/concept"
+    with Session(engine) as session:
+        session.add(
+            ConceptScheme(
+                iri=concept_scheme_iri,
+                notation="notation",
+                scopeNote="scopeNote",
+                prefLabels={"en": "label"},
+            )
+        )
+        session.add(
+            Concept(
+                iri=concept_iri,
+                identifier="identifier",
+                notation="notation",
+                prefLabels={"en": "label"},
+                altLabels={"en": "label"},
+                scopeNotes=["scopeNote"],
+                scheme_iri=concept_scheme_iri,
+            )
+        )
+        session.commit()
+
+    concepts = get_concepts(engine, concept_scheme_iri)
+    assert len(concepts) == 1
+    assert concepts[0].iri == concept_iri
+    assert concepts[0].scheme_iri == concept_scheme_iri

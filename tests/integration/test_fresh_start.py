@@ -58,3 +58,30 @@ def test_fresh_start(client: TestClient) -> None:
             }
         ]
     }
+
+    concept_scheme_iri = response.json()["concept_schemes"][0]["iri"]
+    response = client.get(f"/concepts?concept_scheme_iri={concept_scheme_iri}&lang=sk")
+    assert response.status_code == HTTPStatus.OK
+    assert response.headers["content-type"] == "application/json"
+    assert response.json() == {
+        "concepts": [
+            {
+                "iri": "http://data.europa.eu/xsp/cn2024/020321000080",
+                "identifier": "020321000080",
+                "notation": "0203 21",
+                "prefLabel": "0203 21 -- Trupy a polovičky trupov",
+                "altLabel": "-- Trupy a polovičky trupov",
+                "scopeNote": "Frozen carcases and half-carcases of swine",
+                "scheme_iri": concept_scheme_iri,
+            },
+            {
+                "iri": "http://data.europa.eu/xsp/cn2024/020321000010",
+                "identifier": "020321000010",
+                "notation": "",
+                "prefLabel": "- Mrazené",
+                "altLabel": "- Frozen",
+                "scopeNote": "",
+                "scheme_iri": concept_scheme_iri,
+            },
+        ]
+    }

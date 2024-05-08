@@ -254,6 +254,26 @@ class Concept(Base):
         """
         return self.scopeNotes.get(lang, self.scopeNotes.get("en", ""))
 
+    def to_dict(self, lang: str) -> dict:
+        """
+        Return the Concept instance as a dictionary.
+
+        Args:
+            lang (str): The language code of the preferred label.
+
+        Returns:
+            dict: The Concept instance as a dictionary.
+        """
+        return {
+            "iri": self.iri,
+            "identifier": self.identifier,
+            "notation": self.notation,
+            "prefLabel": self.get_pref_label(lang=lang),
+            "altLabel": self.get_alt_label(lang=lang),
+            "scopeNote": self.get_scope_note(lang=lang),
+            "scheme_iri": self.scheme_iri,
+        }
+
 
 class SemanticRelation(Base):  # pylint: disable=too-few-public-methods
     """

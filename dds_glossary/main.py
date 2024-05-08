@@ -44,3 +44,20 @@ def get_concept_schemes(lang: str = "en") -> JSONResponse:
         media_type="application/json",
         status_code=HTTPStatus.OK,
     )
+
+
+@app.get("/concepts")
+def get_concepts(concept_scheme_iri: str, lang: str = "en") -> JSONResponse:
+    """
+    Returns all the saved concepts for a concept scheme.
+
+    Returns:
+        JSONResponse: The concepts.
+    """
+    return JSONResponse(
+        content={
+            "concepts": controller.get_concepts(concept_scheme_iri, lang=lang),
+        },
+        media_type="application/json",
+        status_code=HTTPStatus.OK,
+    )

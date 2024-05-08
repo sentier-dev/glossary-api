@@ -182,6 +182,19 @@ def test_concept_get_scope_note_no_language_specified_no_english_concept(
     assert concept.get_scope_note() == ""
 
 
+def test_concept_to_dict(concept: Concept) -> None:
+    """It should return a dictionary representation of the Concept instance."""
+    assert concept.to_dict("sk") == {
+        "iri": "http://data.europa.eu/xsp/cn2024/020321000080",
+        "identifier": "020321000080",
+        "notation": "0203 21",
+        "prefLabel": "0203 21 -- Trupy a polovičky trupov",
+        "altLabel": "-- Trupy a polovičky trupov",
+        "scopeNote": "Frozen carcases and half-carcases of swine",
+        "scheme_iri": "http://data.europa.eu/xsp/cn2024/cn2024",
+    }
+
+
 def test_semantic_relation_from_xml_element(
     semantic_relation: SemanticRelation,
 ) -> None:

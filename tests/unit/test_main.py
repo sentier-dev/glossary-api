@@ -34,3 +34,11 @@ def test_get_concept_schemes_empty(client: TestClient) -> None:
     assert response.json() == {"concept_schemes": []}
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
+
+
+def test_get_concepts(client: TestClient) -> None:
+    """Test the /concepts endpoint."""
+    response = client.get("/concepts?concept_scheme_iri=iri")
+    assert response.json() == {"concepts": []}
+    assert response.status_code == HTTPStatus.OK
+    assert response.headers["content-type"] == "application/json"

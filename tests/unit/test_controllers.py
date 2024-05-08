@@ -7,7 +7,7 @@ from requests import Response
 from sqlalchemy.orm import Session
 
 from dds_glossary.controllers import GlossaryController
-from dds_glossary.model import ConceptScheme
+from dds_glossary.model import Concept, ConceptScheme
 
 from .. import FILE_RDF
 
@@ -157,3 +157,35 @@ def test_get_concept_schemes(controller: GlossaryController) -> None:
     concept_schemes = controller.get_concept_schemes()
     assert len(concept_schemes) == 1
     assert concept_schemes[0]["iri"] == iri
+
+
+def test_get_concepts(controller: GlossaryController) -> None:
+    """Test the GlossaryController get_concepts method."""
+    concept_scheme_iri = "http://example.org/concept_scheme"
+    concept_iri = "http://example.org/concept"
+    with Session(controller.engine) as session:
+        session.add(
+            ConceptScheme(
+                iri=concept_scheme_iri,
+                notation="notation",
+                scopeNote="scopeNote",
+                prefLabels={"en": "label"},
+            )
+        )
+        session.add(
+            Concept(
+                iri=concept_iri,
+                identifier="identifier",
+                notation="notation",
+                prefLabels={"en": "label"},
+                altLabels={"en": "label"},
+                scopeNotes={"en": "scopeNote"},
+                scheme_iri=concept_scheme_iri,
+            )
+        )
+        session.commit()
+
+    concepts = controller.get_concepts(concept_scheme_iri)
+    assert len(concepts) == 1
+    assert concepts[0]["iri"] == concept_iri
+    assert concepts[0]["scheme_iri"] == concept_scheme_iri
