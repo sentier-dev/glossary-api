@@ -1,15 +1,14 @@
 """Controller classes for the dds_glossary package."""
 
-from http import HTTPStatus
 from pathlib import Path
 from typing import ClassVar
 
 from appdirs import user_data_dir
 from defusedxml.lxml import parse as parse_xml
-from fastapi.responses import JSONResponse
+from requests import HTTPError
 from requests import get as get_request
 
-from .database import Engine, get_concept_schemes, save_dataset
+from .database import Engine, save_dataset
 from .model import Concept, ConceptScheme, SemanticRelation
 
 
@@ -69,35 +68,47 @@ class GlossaryController:
             )
         return concept_schemes, concepts, semantic_relations
 
-    def init_datasets(self, timeout: int = 10, reload: bool = False) -> None:
+    def init_datasets(
+        self,
+        timeout: int = 10,
+        reload: bool = False,
+    ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
         """
-        Initialize the datasets.
+        Download and save the datasets, if they do not exist or if the reload flag is
+        set.
 
         Args:
             timeout (int): The request timeout. Defaults to 10.
             reload (bool): Flag to reload the datasets. Defaults to False.
 
-        Raises:
-            HTTPError: If the request to a dataset URL fails.
+        Returns:
+            tuple[list[dict[str, str]], list[dict[str, str]]]: The saved datasets and
+                the failed datasets.
         """
+        saved_datasets: list[dict[str, str]] = []
+        failed_datasets: list[dict[str, str]] = []
         for dataset_file, dataset_url in self.datasets.items():
             dataset_path = self.data_dir / dataset_file
-            if not dataset_path.exists() or reload:
-                response = get_request(dataset_url, timeout=timeout)
-                response.raise_for_status()
-                with open(dataset_path, "wb") as file:
-                    file.write(response.content)
-            save_dataset(self.engine, *self.parse_dataset(dataset_path))
-
-    def get_concept_schemes(self) -> JSONResponse:
-        """
-        Returns the concept schemes.
-
-        Returns:
-            JSONResponse: The concept schemes.
-        """
-        return JSONResponse(
-            content={"concept_schemes": get_concept_schemes(self.engine)},
-            media_type="application/json",
-            status_code=HTTPStatus.OK,
-        )
+            try:
+                if not dataset_path.exists() or reload:
+                    response = get_request(dataset_url, timeout=timeout)
+                    response.raise_for_status()
+                    with open(dataset_path, "wb") as file:
+                        file.write(response.content)
+                save_dataset(self.engine, *self.parse_dataset(dataset_path))
+                saved_datasets.append(
+                    {
+                        "dataset": dataset_file,
+                        "dataset_url": dataset_url,
+                    }
+                )
+            except HTTPError as error:
+                failed_datasets.append(
+                    {
+                        "dataset": dataset_file,
+                        "dataset_url": dataset_url,
+                        "status_code": str(error.response.status_code),
+                        "response_text": error.response.text,
+                    }
+                )
+        return saved_datasets, failed_datasets

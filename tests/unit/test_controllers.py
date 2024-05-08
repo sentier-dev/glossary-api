@@ -1,12 +1,10 @@
 """Tests for dds_glossary.controllers module."""
 
 from http import HTTPStatus
-from json import loads
 from pathlib import Path
 
 from pytest import MonkeyPatch
-from pytest import raises as pytest_raises
-from requests import HTTPError, Response
+from requests import Response
 from sqlalchemy.engine import Engine
 
 from dds_glossary.controllers import GlossaryController
@@ -50,19 +48,30 @@ def test_glossary_controller_parse_dataset(engine: Engine) -> None:
     assert semantic_relations[0].target_concept_iri == concept2_iri
 
 
-def test_init_dataset_exception(
+def test_init_dataset_with_failed_datasets(
     engine: Engine, monkeypatch: MonkeyPatch, tmp_path: Path
 ) -> None:
     """Test the GlossaryController init_datasets method with an exception."""
-    response = Response()
-    response.status_code = HTTPStatus.NOT_FOUND
+    get_request = Response()
+    get_request.status_code = HTTPStatus.NOT_FOUND
     monkeypatch.setattr(
-        "dds_glossary.controllers.get_request", lambda *_, **__: response
+        "dds_glossary.controllers.get_request", lambda *_, **__: get_request
     )
 
-    with pytest_raises(HTTPError):
-        controller = GlossaryController(engine=engine, data_dir_path=str(tmp_path))
-        controller.init_datasets()
+    controller = GlossaryController(engine=engine, data_dir_path=str(tmp_path))
+    saved_datasets, failed_datasets = controller.init_datasets()
+    datasets = list(controller.datasets.items())
+
+    assert not saved_datasets
+    assert failed_datasets == [
+        {
+            "dataset": dataset_file,
+            "dataset_url": dataset_url,
+            "status_code": str(HTTPStatus.NOT_FOUND),
+            "response_text": "",
+        }
+        for dataset_file, dataset_url in datasets
+    ]
 
 
 def test_init_datasets_no_reload_no_existing(
@@ -70,15 +79,21 @@ def test_init_datasets_no_reload_no_existing(
 ) -> None:
     """Test the GlossaryController init_datasets method without reload without
     existing files."""
-    response = _init_datasets(monkeypatch)
+    get_response = _init_datasets(monkeypatch)
 
     controller = GlossaryController(engine=engine, data_dir_path=tmp_path)
-    controller.init_datasets()
+    saved_datasets, failed_datasets = controller.init_datasets()
     files = list(tmp_path.iterdir())
+    datasets = list(controller.datasets.items())
 
     assert len(files) == 2
-    assert files[0].read_bytes() == response.content
-    assert files[1].read_bytes() == response.content
+    assert files[0].read_bytes() == get_response.content
+    assert files[1].read_bytes() == get_response.content
+    assert saved_datasets == [
+        {"dataset": dataset_file, "dataset_url": dataset_url}
+        for dataset_file, dataset_url in datasets
+    ]
+    assert not failed_datasets
 
 
 def test_init_datasets_no_reload_existing(
@@ -86,18 +101,23 @@ def test_init_datasets_no_reload_existing(
 ) -> None:
     """Test the GlossaryController init_datasets method without reload with
     existing files."""
-    response = _init_datasets(monkeypatch)
+    get_response = _init_datasets(monkeypatch)
     datasets = {"test.rdf": "http://example.com/test.rdf"}
     old_file = tmp_path / "test.rdf"
-    old_file.write_bytes(response.content)
+    old_file.write_bytes(get_response.content)
     GlossaryController.datasets = datasets
 
     controller = GlossaryController(engine=engine, data_dir_path=tmp_path)
-    controller.init_datasets()
+    saved_datasets, failed_datasets = controller.init_datasets()
     files = list(tmp_path.iterdir())
 
     assert len(files) == 1
-    assert files[0].read_bytes() == response.content
+    assert files[0].read_bytes() == get_response.content
+    assert saved_datasets == [
+        {"dataset": dataset_file, "dataset_url": dataset_url}
+        for dataset_file, dataset_url in datasets.items()
+    ]
+    assert not failed_datasets
 
 
 def test_init_datasets_reload_existing(
@@ -105,24 +125,20 @@ def test_init_datasets_reload_existing(
 ) -> None:
     """Test the GlossaryController init_datasets method with reload with
     existing files."""
-    response = _init_datasets(monkeypatch)
+    get_response = _init_datasets(monkeypatch)
     datasets = {"test.rdf": "http://example.com/test.rdf"}
     old_file = tmp_path / "test.rdf"
     old_file.write_bytes(b"")
     GlossaryController.datasets = datasets
 
     controller = GlossaryController(engine=engine, data_dir_path=tmp_path)
-    controller.init_datasets(reload=True)
+    saved_datasets, failed_datasets = controller.init_datasets(reload=True)
     files = list(tmp_path.iterdir())
 
     assert len(files) == 1
-    assert files[0].read_bytes() == response.content
-
-
-def test_glossary_controller_get_concept_schemes_empty(engine: Engine) -> None:
-    """Test the APIController get_concept_schemes method."""
-    controller = GlossaryController(engine=engine)
-    response = controller.get_concept_schemes()
-    assert loads(response.body) == {"concept_schemes": []}
-    assert response.status_code == HTTPStatus.OK
-    assert response.media_type == "application/json"
+    assert files[0].read_bytes() == get_response.content
+    assert saved_datasets == [
+        {"dataset": dataset_file, "dataset_url": dataset_url}
+        for dataset_file, dataset_url in datasets.items()
+    ]
+    assert not failed_datasets

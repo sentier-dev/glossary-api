@@ -9,7 +9,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy_utils import drop_database
 
 from dds_glossary.database import init_engine
-from dds_glossary.main import app, controller
+from dds_glossary.main import app
 from dds_glossary.model import Concept, ConceptScheme, SemanticRelation
 
 from . import FILE_RDF
@@ -60,7 +60,7 @@ def _client(
     monkeypatch,
     engine,  # pylint: disable=redefined-outer-name
 ) -> Generator[TestClient, None, None]:
-    monkeypatch.setattr(controller, "engine", engine)
+    monkeypatch.setattr("dds_glossary.main.engine", engine)
 
     with TestClient(app) as client:
         yield client
