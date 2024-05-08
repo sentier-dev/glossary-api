@@ -32,7 +32,7 @@ class GlossaryController:
     def __init__(
         self,
         engine: Engine,
-        data_dir_path: str = user_data_dir("dds_glossary", "dds_glossary"),
+        data_dir_path: str | Path = user_data_dir("dds_glossary", "dds_glossary"),
     ) -> None:
         self.engine = engine
         self.data_dir = Path(data_dir_path)
@@ -74,8 +74,8 @@ class GlossaryController:
         Initialize the datasets.
 
         Args:
-            timeout (int): The request timeout.
-            reload (bool): Flag to reload the datasets.
+            timeout (int): The request timeout. Defaults to 10.
+            reload (bool): Flag to reload the datasets. Defaults to False.
 
         Raises:
             HTTPError: If the request to a dataset URL fails.
