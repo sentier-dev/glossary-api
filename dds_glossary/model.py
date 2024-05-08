@@ -103,6 +103,23 @@ class ConceptScheme(Base):
         """
         return self.prefLabels.get(lang, self.prefLabels.get("en", ""))
 
+    def to_dict(self, lang: str) -> dict:
+        """
+        Return the ConceptScheme instance as a dictionary.
+
+        Args:
+            lang (str): The language code of the preferred label.
+
+        Returns:
+            dict: The ConceptScheme instance as a dictionary.
+        """
+        return {
+            "iri": self.iri,
+            "notation": self.notation,
+            "scopeNote": self.scopeNote,
+            "prefLabel": self.get_pref_label(lang=lang),
+        }
+
 
 class Concept(Base):
     """

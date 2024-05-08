@@ -5,10 +5,10 @@ from typing import ClassVar
 
 from appdirs import user_data_dir
 from defusedxml.lxml import parse as parse_xml
-from requests import HTTPError
+from requests import RequestException
 from requests import get as get_request
 
-from .database import Engine, save_dataset
+from .database import get_concept_schemes, init_engine, save_dataset
 from .model import Concept, ConceptScheme, SemanticRelation
 
 
@@ -18,6 +18,7 @@ class GlossaryController:
 
     Attributes:
         engine (Engine): The database engine.
+        data_dir (Path): The data directory for saving the datasets.
     """
 
     base_url: ClassVar[str] = "http://publications.europa.eu/resource/distribution/"
@@ -30,10 +31,9 @@ class GlossaryController:
 
     def __init__(
         self,
-        engine: Engine,
         data_dir_path: str | Path = user_data_dir("dds_glossary", "dds_glossary"),
     ) -> None:
-        self.engine = engine
+        self.engine = init_engine()
         self.data_dir = Path(data_dir_path)
 
     def parse_dataset(
@@ -87,6 +87,7 @@ class GlossaryController:
         """
         saved_datasets: list[dict[str, str]] = []
         failed_datasets: list[dict[str, str]] = []
+        self.engine = init_engine(drop_database_flag=True)
         for dataset_file, dataset_url in self.datasets.items():
             dataset_path = self.data_dir / dataset_file
             try:
@@ -102,13 +103,27 @@ class GlossaryController:
                         "dataset_url": dataset_url,
                     }
                 )
-            except HTTPError as error:
+            except RequestException as error:
                 failed_datasets.append(
                     {
                         "dataset": dataset_file,
                         "dataset_url": dataset_url,
-                        "status_code": str(error.response.status_code),
-                        "response_text": error.response.text,
+                        "error": str(error),
                     }
                 )
         return saved_datasets, failed_datasets
+
+    def get_concept_schemes(self, lang: str = "en") -> list[dict]:
+        """
+        Get the concept schemes.
+
+        Args:
+            lang (str): The language. Defaults to "en".
+
+        Returns:
+            list[dict]: The concept schemes.
+        """
+        return [
+            concept_scheme.to_dict(lang=lang)
+            for concept_scheme in get_concept_schemes(self.engine)
+        ]

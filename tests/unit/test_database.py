@@ -5,7 +5,7 @@ from sqlalchemy import inspect
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
-from dds_glossary.database import init_engine, save_dataset
+from dds_glossary.database import get_concept_schemes, init_engine, save_dataset
 from dds_glossary.model import (
     Concept,
     ConceptScheme,
@@ -129,3 +129,22 @@ def test_save_dataset_with_data(engine: Engine) -> None:
         assert session.query(Concept).all()[0].iri == concept1_iri
         assert session.query(SemanticRelation).one().source_concept_iri == concept1_iri
         assert session.query(SemanticRelation).one().target_concept_iri == concept2_iri
+
+
+def test_get_concept_scheme(engine: Engine) -> None:
+    """Test the get_concept_schemes."""
+    iri = "http://example.org/concept_scheme"
+    with Session(engine) as session:
+        session.add(
+            ConceptScheme(
+                iri=iri,
+                notation="notation",
+                scopeNote="scopeNote",
+                prefLabels={"en": "label"},
+            )
+        )
+        session.commit()
+
+    concept_schemes = get_concept_schemes(engine)
+    assert len(concept_schemes) == 1
+    assert concept_schemes[0].iri == iri

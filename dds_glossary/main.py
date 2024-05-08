@@ -6,12 +6,9 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 
 from .controllers import GlossaryController
-from .database import get_concept_schemes as _get_concept_schemes
-from .database import init_engine
 
 app = FastAPI()
-engine = init_engine()
-controller = GlossaryController(engine)
+controller = GlossaryController()
 
 
 @app.post("/init_datasets")
@@ -33,17 +30,17 @@ def init_datasets() -> JSONResponse:
 
 
 @app.get("/schemes")
-def get_concept_schemes() -> JSONResponse:
+def get_concept_schemes(lang: str = "en") -> JSONResponse:
     """
     Returns all the saved concept schemes.
 
     Returns:
-        JSONResponse: {
-            "concept_schemes": list[ConceptScheme]: The concept schemes.
-        }
+        JSONResponse: The concept schemes.
     """
     return JSONResponse(
-        content={"concept_schemes": _get_concept_schemes(engine)},
+        content={
+            "concept_schemes": controller.get_concept_schemes(lang=lang),
+        },
         media_type="application/json",
         status_code=HTTPStatus.OK,
     )

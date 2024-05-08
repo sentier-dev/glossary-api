@@ -73,9 +73,6 @@ def get_concept_schemes(engine: Engine) -> list[ConceptScheme]:
     """
     Get the concept schemes from the database.
 
-    Args:
-        engine (Engine): The database engine.
-
     Returns:
         list[ConceptScheme]: The concept schemes.
     """
