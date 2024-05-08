@@ -37,8 +37,7 @@ def test_fresh_start(client: TestClient) -> None:
                 "dataset": failed_dataset_file,
                 "dataset_url": failed_database_url,
                 "error": (
-                    "Invalid URL '': No scheme supplied. "
-                    "Perhaps you meant https://?",
+                    "Invalid URL '': No scheme supplied. " "Perhaps you meant https://?"
                 ),
             }
         ],
