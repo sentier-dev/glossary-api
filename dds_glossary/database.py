@@ -5,7 +5,7 @@ from os import getenv
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
-from sqlalchemy_utils import create_database, database_exists, drop_database
+from sqlalchemy_utils import create_database, database_exists
 
 from .model import Base, Concept, ConceptScheme, SemanticRelation
 
@@ -33,17 +33,16 @@ def init_engine(
     """
     if database_url is None:
         database_url = getenv("DATABASE_URL")
-
     if not database_url:
         raise ValueError("DATABASE_URL environment variable is not set.")
 
-    if database_exists(database_url) and drop_database_flag:
-        drop_database(database_url)
-    if not database_exists(database_url):
-        create_database(database_url)
-
     engine = create_engine(database_url)
+    if not database_exists(engine.url):
+        create_database(engine.url)
+    elif drop_database_flag:
+        Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
+
     return engine
 
 
