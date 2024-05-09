@@ -208,3 +208,12 @@ def test_semantic_relation_from_xml_element(
         == "http://data.europa.eu/xsp/cn2024/020321000010"
     )
     assert semantic_relation.type == SemanticRelationType.BROADER
+
+
+def test_semantic_relation_to_dict(semantic_relation: SemanticRelation) -> None:
+    """It should return a dictionary representation of the SemanticRelation instance."""
+    assert semantic_relation.to_dict() == {
+        "source_concept_iri": "http://data.europa.eu/xsp/cn2024/020321000080",
+        "target_concept_iri": "http://data.europa.eu/xsp/cn2024/020321000010",
+        "type": "broader",
+    }

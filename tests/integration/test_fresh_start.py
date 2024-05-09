@@ -85,3 +85,19 @@ def test_fresh_start(client: TestClient) -> None:
             },
         ]
     }
+
+    concept_dict = response.json()["concepts"][0]
+    related_concept_dict = response.json()["concepts"][1]
+    response = client.get(f"/concept?concept_iri={concept_dict['iri']}&lang=sk")
+    assert response.status_code == HTTPStatus.OK
+    assert response.headers["content-type"] == "application/json"
+    assert response.json() == {
+        **concept_dict,
+        "relations": [
+            {
+                "source_concept_iri": concept_dict["iri"],
+                "target_concept_iri": related_concept_dict["iri"],
+                "type": "broader",
+            }
+        ],
+    }

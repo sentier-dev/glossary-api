@@ -6,8 +6,16 @@ from typing import ClassVar
 from appdirs import user_data_dir
 from defusedxml.lxml import parse as parse_xml
 from owlready2 import get_ontology, onto_path
+from sqlalchemy.exc import NoResultFound
 
-from .database import get_concept_schemes, get_concepts, init_engine, save_dataset
+from .database import (
+    get_concept,
+    get_concept_schemes,
+    get_concepts,
+    get_relations,
+    init_engine,
+    save_dataset,
+)
 from .model import Concept, ConceptScheme, SemanticRelation
 
 
@@ -150,3 +158,29 @@ class GlossaryController:
             concept.to_dict(lang=lang)
             for concept in get_concepts(self.engine, concept_scheme_iri)
         ]
+
+    def get_concept(self, concept_iri: str, lang: str = "en") -> dict:
+        """
+        Get the concept and al its relations.
+
+        Args:
+            concept_iri (str): The concept IRI.
+            lang (str): The language. Defaults to "en".
+
+        Returns:
+            dict: The concept.
+
+        Raises:
+            NoResultFound: If the concept is not found.
+        """
+        concept_dict = get_concept(self.engine, concept_iri)
+
+        if concept_dict:
+            return {
+                **concept_dict.to_dict(lang=lang),
+                "relations": [
+                    relation.to_dict()
+                    for relation in get_relations(self.engine, concept_iri)
+                ],
+            }
+        raise NoResultFound
