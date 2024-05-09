@@ -3,6 +3,7 @@
 from http import HTTPStatus
 
 from fastapi.testclient import TestClient
+from owlready2 import onto_path
 
 from dds_glossary.controllers import GlossaryController
 from dds_glossary.main import controller
@@ -13,6 +14,7 @@ from .. import DIR_DATA
 def test_fresh_start(client: TestClient) -> None:
     """Test the /fresh_start endpoint."""
     controller.data_dir = DIR_DATA
+    onto_path.append(str(DIR_DATA))
     saved_dataset_file = "sample.rdf"
     saved_database_url = "https://example.com/sample.rdf"
     failed_dataset_file = "failed_dataset.rdf"
@@ -36,9 +38,7 @@ def test_fresh_start(client: TestClient) -> None:
             {
                 "dataset": failed_dataset_file,
                 "dataset_url": failed_database_url,
-                "error": (
-                    "Invalid URL '': No scheme supplied. " "Perhaps you meant https://?"
-                ),
+                "error": ("[Errno 2] No such file or directory: ''"),
             }
         ],
     }

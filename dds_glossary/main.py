@@ -12,13 +12,13 @@ controller = GlossaryController()
 
 
 @app.post("/init_datasets")
-def init_datasets() -> JSONResponse:
+def init_datasets(reload: bool = False) -> JSONResponse:
     """Initialize the datasets.
 
     Returns:
         JSONResponse: The status of the init request.
     """
-    saved_datasets, failed_datasets = controller.init_datasets()
+    saved_datasets, failed_datasets = controller.init_datasets(reload=reload)
     return JSONResponse(
         content={
             "saved_datasets": saved_datasets,

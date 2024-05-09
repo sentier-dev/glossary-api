@@ -5,8 +5,7 @@ from typing import ClassVar
 
 from appdirs import user_data_dir
 from defusedxml.lxml import parse as parse_xml
-from requests import RequestException
-from requests import get as get_request
+from owlready2 import get_ontology, onto_path
 
 from .database import get_concept_schemes, get_concepts, init_engine, save_dataset
 from .model import Concept, ConceptScheme, SemanticRelation
@@ -24,9 +23,12 @@ class GlossaryController:
     base_url: ClassVar[str] = "http://publications.europa.eu/resource/distribution/"
     datasets: ClassVar[dict[str, str]] = {
         "ESTAT-CN2024.rdf": (
-            "combined-nomenclature-2024/20240425-0/rdf/skos_core/ESTAT-CN2024.rdf"
+            base_url
+            + "combined-nomenclature-2024/20240425-0/rdf/skos_core/ESTAT-CN2024.rdf"
         ),
-        "ESTAT-LoW2015.rdf": "low2015/20240425-0/rdf/skos_core/ESTAT-LoW2015.rdf",
+        "ESTAT-LoW2015.rdf": (
+            base_url + "low2015/20240425-0/rdf/skos_core/ESTAT-LoW2015.rdf"
+        ),
     }
 
     def __init__(
@@ -35,6 +37,7 @@ class GlossaryController:
     ) -> None:
         self.engine = init_engine()
         self.data_dir = Path(data_dir_path)
+        onto_path.append(str(self.data_dir))
 
     def parse_dataset(
         self,
@@ -70,7 +73,6 @@ class GlossaryController:
 
     def init_datasets(
         self,
-        timeout: int = 10,
         reload: bool = False,
     ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
         """
@@ -78,7 +80,6 @@ class GlossaryController:
         set.
 
         Args:
-            timeout (int): The request timeout. Defaults to 10.
             reload (bool): Flag to reload the datasets. Defaults to False.
 
         Returns:
@@ -91,11 +92,8 @@ class GlossaryController:
         for dataset_file, dataset_url in self.datasets.items():
             dataset_path = self.data_dir / dataset_file
             try:
-                if not dataset_path.exists() or reload:
-                    response = get_request(dataset_url, timeout=timeout)
-                    response.raise_for_status()
-                    with open(dataset_path, "wb") as file:
-                        file.write(response.content)
+                ontology = get_ontology(dataset_url).load(reload=reload)
+                ontology.save(file=str(dataset_path), format="rdfxml")
                 save_dataset(self.engine, *self.parse_dataset(dataset_path))
                 saved_datasets.append(
                     {
@@ -103,7 +101,7 @@ class GlossaryController:
                         "dataset_url": dataset_url,
                     }
                 )
-            except RequestException as error:
+            except Exception as error:  # pylint: disable=broad-except
                 failed_datasets.append(
                     {
                         "dataset": dataset_file,

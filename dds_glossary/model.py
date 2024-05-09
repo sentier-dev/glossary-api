@@ -32,6 +32,23 @@ class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
     type_annotation_map: ClassVar[dict] = {dict[str, str]: JSONB}
     xml_namespace: ClassVar[str] = "{http://www.w3.org/XML/1998/namespace}"
 
+    @staticmethod
+    def get_sub_element_text(element, tag: str, default_value: str = "") -> str:
+        """
+        Get a sub element text from the XML element if tag exists, else return
+        default_value.
+
+        Args:
+            element (ElementBase): The XML element to parse.
+            tag (str): The tag to search for.
+            default_value (str): The default value to return if the tag does not exist.
+
+        Returns:
+            str: The sub element text if the tag exists, else the default value.
+        """
+        sub_element = element.find(tag, namespaces=element.nsmap)
+        return sub_element.text if sub_element is not None else default_value
+
 
 class ConceptScheme(Base):
     """
@@ -79,8 +96,8 @@ class ConceptScheme(Base):
         """
         return ConceptScheme(
             iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
-            notation=element.find("core:notation", namespaces=element.nsmap).text,
-            scopeNote=element.find("core:scopeNote", namespaces=element.nsmap).text,
+            notation=cls.get_sub_element_text(element, "core:notation"),
+            scopeNote=cls.get_sub_element_text(element, "core:scopeNote"),
             prefLabels={
                 label.get(f"{cls.xml_namespace}lang"): label.text
                 for label in element.findall("core:prefLabel", namespaces=element.nsmap)
@@ -181,13 +198,11 @@ class Concept(Base):
         Returns:
             Concept: The parsed Concept instance.
         """
-        notation_element = element.find("core:notation", namespaces=element.nsmap)
-        notation = "" if notation_element is None else notation_element.text
 
         return Concept(
             iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
-            identifier=element.find("x_1.1:identifier", namespaces=element.nsmap).text,
-            notation=notation,
+            identifier=cls.get_sub_element_text(element, "x_1.1:identifier"),
+            notation=cls.get_sub_element_text(element, "core:notation"),
             prefLabels={
                 label.get(f"{cls.xml_namespace}lang"): label.text
                 for label in element.findall("core:prefLabel", namespaces=element.nsmap)

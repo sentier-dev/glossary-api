@@ -1,9 +1,6 @@
 """Tests for dds_glossary.controllers module."""
 
-from http import HTTPStatus
-
 from pytest import MonkeyPatch
-from requests import Response
 from sqlalchemy.orm import Session
 
 from dds_glossary.controllers import GlossaryController
@@ -12,19 +9,11 @@ from dds_glossary.model import Concept, ConceptScheme
 from .. import FILE_RDF
 
 
-def _init_datasets(_monkeypatch: MonkeyPatch) -> Response:
-    response = Response()
-    response.status_code = HTTPStatus.OK
-    with open(FILE_RDF, "rb") as file:
-        response._content = file.read()  # pylint: disable=protected-access
+def _init_datasets(_monkeypatch: MonkeyPatch) -> None:
     _monkeypatch.setattr("dds_glossary.database.save_dataset", lambda *_, **__: None)
-    _monkeypatch.setattr(
-        "dds_glossary.controllers.get_request", lambda *_, **__: response
-    )
     _monkeypatch.setattr(
         GlossaryController, "parse_dataset", lambda *_, **__: ([], [], [])
     )
-    return response
 
 
 def test_glossary_controller_parse_dataset(controller: GlossaryController) -> None:
@@ -51,93 +40,25 @@ def test_init_dataset_with_failed_datasets(
     controller: GlossaryController, monkeypatch: MonkeyPatch
 ) -> None:
     """Test the GlossaryController init_datasets method with an exception."""
-    get_request = Response()
-    get_request.status_code = HTTPStatus.NOT_FOUND
-    monkeypatch.setattr(
-        "dds_glossary.controllers.get_request", lambda *_, **__: get_request
-    )
+    _init_datasets(monkeypatch)
+    GlossaryController.datasets = {
+        "sample.rdf": str(FILE_RDF),
+        "test.rdf": "test.rdf",
+    }
 
     saved_datasets, failed_datasets = controller.init_datasets()
-    datasets = list(controller.datasets.items())
+    files = list(controller.data_dir.iterdir())
 
-    assert not saved_datasets
+    assert len(files) == 1
+    assert files[0].read_bytes() == FILE_RDF.read_bytes()
+    assert saved_datasets == [{"dataset": "sample.rdf", "dataset_url": str(FILE_RDF)}]
     assert failed_datasets == [
         {
-            "dataset": dataset_file,
-            "dataset_url": dataset_url,
-            "error": "404 Client Error: None for url: None",
+            "dataset": "test.rdf",
+            "dataset_url": "test.rdf",
+            "error": "[Errno 2] No such file or directory: 'test.rdf'",
         }
-        for dataset_file, dataset_url in datasets
     ]
-
-
-def test_init_datasets_no_reload_no_existing(
-    controller: GlossaryController, monkeypatch: MonkeyPatch
-) -> None:
-    """Test the GlossaryController init_datasets method without reload without
-    existing files."""
-    get_response = _init_datasets(monkeypatch)
-
-    saved_datasets, failed_datasets = controller.init_datasets()
-    files = list(controller.data_dir.iterdir())
-    datasets = list(controller.datasets.items())
-
-    assert len(files) == 2
-    assert files[0].read_bytes() == get_response.content
-    assert files[1].read_bytes() == get_response.content
-    assert saved_datasets == [
-        {"dataset": dataset_file, "dataset_url": dataset_url}
-        for dataset_file, dataset_url in datasets
-    ]
-    assert not failed_datasets
-
-
-def test_init_datasets_no_reload_existing(
-    controller: GlossaryController,
-    monkeypatch: MonkeyPatch,
-) -> None:
-    """Test the GlossaryController init_datasets method without reload with
-    existing files."""
-    get_response = _init_datasets(monkeypatch)
-    datasets = {"test.rdf": "http://example.com/test.rdf"}
-    old_file = controller.data_dir / "test.rdf"
-    old_file.write_bytes(get_response.content)
-    GlossaryController.datasets = datasets
-
-    saved_datasets, failed_datasets = controller.init_datasets()
-    files = list(controller.data_dir.iterdir())
-
-    assert len(files) == 1
-    assert files[0].read_bytes() == get_response.content
-    assert saved_datasets == [
-        {"dataset": dataset_file, "dataset_url": dataset_url}
-        for dataset_file, dataset_url in datasets.items()
-    ]
-    assert not failed_datasets
-
-
-def test_init_datasets_reload_existing(
-    controller: GlossaryController,
-    monkeypatch: MonkeyPatch,
-) -> None:
-    """Test the GlossaryController init_datasets method with reload with
-    existing files."""
-    get_response = _init_datasets(monkeypatch)
-    datasets = {"test.rdf": "http://example.com/test.rdf"}
-    old_file = controller.data_dir / "test.rdf"
-    old_file.write_bytes(b"")
-    GlossaryController.datasets = datasets
-
-    saved_datasets, failed_datasets = controller.init_datasets(reload=True)
-    files = list(controller.data_dir.iterdir())
-
-    assert len(files) == 1
-    assert files[0].read_bytes() == get_response.content
-    assert saved_datasets == [
-        {"dataset": dataset_file, "dataset_url": dataset_url}
-        for dataset_file, dataset_url in datasets.items()
-    ]
-    assert not failed_datasets
 
 
 def test_get_concept_schemes(controller: GlossaryController) -> None:
