@@ -290,7 +290,7 @@ class Concept(Base):
         }
 
 
-class SemanticRelation(Base):  # pylint: disable=too-few-public-methods
+class SemanticRelation(Base):
     """
     SKOS semantic relations are links between SKOS concepts, where the link is
     inherent in the meaning of the linked concepts.
@@ -378,3 +378,16 @@ class SemanticRelation(Base):  # pylint: disable=too-few-public-methods
                 f"core:{relation_type.value}", namespaces=element.nsmap
             )
         ]
+
+    def to_dict(self) -> dict:
+        """
+        Return the SemanticRelation instance as a dictionary.
+
+        Returns:
+            dict: The SemanticRelation instance as a dictionary.
+        """
+        return {
+            "type": self.type.value,
+            "source_concept_iri": self.source_concept_iri,
+            "target_concept_iri": self.target_concept_iri,
+        }

@@ -4,6 +4,7 @@ from http import HTTPStatus
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import NoResultFound
 
 from .controllers import GlossaryController
 
@@ -61,3 +62,27 @@ def get_concepts(concept_scheme_iri: str, lang: str = "en") -> JSONResponse:
         media_type="application/json",
         status_code=HTTPStatus.OK,
     )
+
+
+@app.get("/concept")
+def get_concept(concept_iri: str, lang: str = "en") -> JSONResponse:
+    """
+    Returns a concept.
+
+    Returns:
+        JSONResponse: The concept.
+    """
+    try:
+        return JSONResponse(
+            content=controller.get_concept(concept_iri, lang=lang),
+            media_type="application/json",
+            status_code=HTTPStatus.OK,
+        )
+    except NoResultFound:
+        return JSONResponse(
+            content={
+                "error": f"Concept {concept_iri} not found.",
+            },
+            media_type="application/json",
+            status_code=HTTPStatus.NOT_FOUND,
+        )

@@ -94,3 +94,40 @@ def get_concepts(engine: Engine, concept_scheme_iri: str) -> list[Concept]:
         return (
             session.query(Concept).where(Concept.scheme_iri == concept_scheme_iri).all()
         )
+
+
+def get_concept(engine: Engine, concept_iri: str) -> Concept | None:
+    """
+    Get the concept from the database, if found.
+
+    Args:
+        engine (Engine): The database engine.
+        concept_iri (str): The concept IRI.
+
+    Return:
+        Concept | None: The concept or None if not found.
+    """
+    with Session(engine) as session:
+        return session.query(Concept).where(Concept.iri == concept_iri).one_or_none()
+
+
+def get_relations(engine: Engine, concept_iri: str) -> list[SemanticRelation]:
+    """
+    Get the relations from the database.
+
+    Args:
+        engine (Engine): The database engine.
+        concept_iri (str): The concept IRI.
+
+    Returns:
+        list[SemanticRelation]: The relations.
+    """
+    with Session(engine) as session:
+        return (
+            session.query(SemanticRelation)
+            .where(
+                (SemanticRelation.source_concept_iri == concept_iri)
+                | (SemanticRelation.target_concept_iri == concept_iri)
+            )
+            .all()
+        )

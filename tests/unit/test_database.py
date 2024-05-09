@@ -6,8 +6,10 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from dds_glossary.database import (
+    get_concept,
     get_concept_schemes,
     get_concepts,
+    get_relations,
     init_engine,
     save_dataset,
 )
@@ -185,3 +187,87 @@ def test_get_concepts(engine: Engine) -> None:
     assert len(concepts) == 1
     assert concepts[0].iri == concept_iri
     assert concepts[0].scheme_iri == concept_scheme_iri
+
+
+def test_get_concept(engine: Engine) -> None:
+    """Test the get_concept."""
+    concept_scheme_iri = "http://example.org/concept_scheme"
+    concept_iri = "http://example.org/concept"
+    with Session(engine) as session:
+        session.add(
+            ConceptScheme(
+                iri=concept_scheme_iri,
+                notation="notation",
+                scopeNote="scopeNote",
+                prefLabels={"en": "label"},
+            )
+        )
+        session.add(
+            Concept(
+                iri=concept_iri,
+                identifier="identifier",
+                notation="notation",
+                prefLabels={"en": "label"},
+                altLabels={"en": "label"},
+                scopeNotes=["scopeNote"],
+                scheme_iri=concept_scheme_iri,
+            )
+        )
+        session.commit()
+
+    concept = get_concept(engine, concept_iri)
+    assert concept is not None
+    assert concept.iri == concept_iri
+    assert concept.scheme_iri == concept_scheme_iri
+
+
+def test_get_relations(engine: Engine) -> None:
+    """Test the get_relations."""
+    concept_scheme_iri = "http://example.org/concept_scheme"
+    source_concept_iri = "http://example.org/concept1"
+    target_concept_iri = "http://example.org/concept2"
+    with Session(engine) as session:
+        session.add(
+            ConceptScheme(
+                iri=concept_scheme_iri,
+                notation="notation",
+                scopeNote="scopeNote",
+                prefLabels={"en": "label"},
+            )
+        )
+        session.add(
+            Concept(
+                iri=source_concept_iri,
+                identifier="identifier",
+                notation="notation",
+                prefLabels={"en": "label"},
+                altLabels={"en": "label"},
+                scopeNotes=["scopeNote"],
+                scheme_iri=concept_scheme_iri,
+            )
+        )
+        session.add(
+            Concept(
+                iri=target_concept_iri,
+                identifier="identifier",
+                notation="notation",
+                prefLabels={"en": "label"},
+                altLabels={"en": "label"},
+                scopeNotes=["scopeNote"],
+                scheme_iri=concept_scheme_iri,
+            )
+        )
+        session.add(
+            SemanticRelation(
+                type=SemanticRelationType.BROADER,
+                source_concept_iri=source_concept_iri,
+                target_concept_iri=target_concept_iri,
+            )
+        )
+        session.commit()
+
+    relations = get_relations(engine, source_concept_iri)
+    assert len(relations) == 1
+    assert relations[0].source_concept_iri == source_concept_iri
+    assert relations[0].target_concept_iri == target_concept_iri
+    assert relations[0].type == SemanticRelationType.BROADER

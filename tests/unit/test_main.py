@@ -42,3 +42,12 @@ def test_get_concepts(client: TestClient) -> None:
     assert response.json() == {"concepts": []}
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
+
+
+def test_get_concept(client: TestClient) -> None:
+    """Test the /concept endpoint."""
+    concept_iri = "iri"
+    response = client.get(f"/concept?concept_iri={concept_iri}")
+    assert response.json() == {"error": f"Concept {concept_iri} not found."}
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.headers["content-type"] == "application/json"
