@@ -29,6 +29,15 @@ class GlossaryController:
         "ESTAT-LoW2015.rdf": (
             base_url + "low2015/20240425-0/rdf/skos_core/ESTAT-LoW2015.rdf"
         ),
+        "ESTAT-NACE2.1.rdf": (
+            base_url + "nace2.1/20240425-0/rdf/skos_core/ESTAT-NACE2.1.rdf"
+        ),
+        "ESTAT-ICST-COM.rdf": (
+            base_url + "icst-com/20240425-0/rdf/skos_core/ESTAT-ICST-COM.rdf"
+        ),
+        "ESTAT-PRODCOM2023.rdf": (
+            base_url + "prodcom2023/20240425-0/rdf/skos_core/ESTAT-PRODCOM2023.rdf"
+        ),
     }
 
     def __init__(
