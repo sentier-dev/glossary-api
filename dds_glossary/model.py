@@ -1,5 +1,6 @@
 """Model classes for the dds_glossary package."""
 
+from abc import abstractmethod
 from enum import Enum
 from typing import ClassVar
 
@@ -32,6 +33,9 @@ class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
     type_annotation_map: ClassVar[dict] = {dict[str, str]: JSONB}
     xml_namespace: ClassVar[str] = "{http://www.w3.org/XML/1998/namespace}"
 
+    def __eq__(self, other: object) -> bool:
+        return self.to_dict() == other.to_dict()  # type: ignore
+
     @staticmethod
     def get_sub_element_text(element, tag: str, default_value: str = "") -> str:
         """
@@ -48,6 +52,32 @@ class Base(DeclarativeBase):  # pylint: disable=too-few-public-methods
         """
         sub_element = element.find(tag, namespaces=element.nsmap)
         return sub_element.text if sub_element is not None else default_value
+
+    @staticmethod
+    def get_in_language(attribute: dict, lang: str = "en") -> str:
+        """
+        Get the value of the attribute in the specified language. If the attribute is
+        not available in the specified language, return the attribute in English. If the
+        attribute is not available in English, return an empty string.
+
+        Args:
+            attribute (dict): The attribute to search for.
+            lang (str): The language code of the attribute. Defaults to English ("en").
+
+        Returns:
+            str: The attribute in the specified language if available, otherwise in
+                English.
+        """
+        return attribute.get(lang, attribute.get("en", ""))
+
+    @abstractmethod
+    def to_dict(self) -> dict:
+        """
+        Return the model instance as a dictionary.
+
+        Returns:
+            dict: The model instance as a dictionary.
+        """
 
 
 class ConceptScheme(Base):
@@ -104,22 +134,6 @@ class ConceptScheme(Base):
             },
         )
 
-    def get_pref_label(self, lang: str = "en") -> str:
-        """
-        Return the preferred label in the specified language. If the preferred label is
-        not available in the specified language, return the preferred label in English.
-        If the preferred label is not available in English, return an empty string.
-
-        Args:
-            lang (str): The language code of the preferred label. Defaults to English
-                ("en").
-
-        Returns:
-            str: The preferred label in the specified language if available, otherwise
-                in English.
-        """
-        return self.prefLabels.get(lang, self.prefLabels.get("en", ""))
-
     def to_dict(self, lang: str = "en") -> dict:
         """
         Return the ConceptScheme instance as a dictionary.
@@ -134,7 +148,7 @@ class ConceptScheme(Base):
             "iri": self.iri,
             "notation": self.notation,
             "scopeNote": self.scopeNote,
-            "prefLabel": self.get_pref_label(lang=lang),
+            "prefLabel": self.get_in_language(self.prefLabels, lang=lang),
         }
 
 
@@ -220,61 +234,13 @@ class Concept(Base):
             ),
         )
 
-    def get_pref_label(self, lang: str = "en") -> str:
-        """
-        Return the preferred label in the specified language. If the preferred label is
-        not available in the specified language, return the preferred label in English.
-        If the preferred label is not available in English, return an empty string.
-
-        Args:
-            lang (str): The language code of the preferred label. Defaults to English
-                ("en").
-
-        Returns:
-            str: The preferred label in the specified language if available, otherwise
-                in English.
-        """
-        return self.prefLabels.get(lang, self.prefLabels.get("en", ""))
-
-    def get_alt_label(self, lang: str = "en") -> str:
-        """
-        Return the alternative label in the specified language. If the alternative label
-        is not available in the specified language, return the alternative label in
-        English. If the alternative label is not available in English, return an empty
-        string.
-
-        Args:
-            lang (str): The language code of the alternative label. Defaults to English
-                ("en").
-
-        Returns:
-            str: The alternative label in the specified language if available, otherwise
-                in English.
-        """
-        return self.altLabels.get(lang, self.altLabels.get("en", ""))
-
-    def get_scope_note(self, lang: str = "en") -> str:
-        """
-        Return the scope note in the specified language. If the scope note is not
-        available in the specified language, return the scope note in English. If the
-        scope note is not available in English, return an empty string.
-
-        Args:
-            lang (str): The language code of the scope note. Defaults to English
-                ("en").
-
-        Returns:
-            str: The scope note in the specified language if available, otherwise in
-                English.
-        """
-        return self.scopeNotes.get(lang, self.scopeNotes.get("en", ""))
-
     def to_dict(self, lang: str = "en") -> dict:
         """
         Return the Concept instance as a dictionary.
 
         Args:
-            lang (str): The language code of the preferred label.
+            lang (str): The language code of the prefLabel, altLabel
+                and scopeNote.
 
         Returns:
             dict: The Concept instance as a dictionary.
@@ -283,9 +249,9 @@ class Concept(Base):
             "iri": self.iri,
             "identifier": self.identifier,
             "notation": self.notation,
-            "prefLabel": self.get_pref_label(lang=lang),
-            "altLabel": self.get_alt_label(lang=lang),
-            "scopeNote": self.get_scope_note(lang=lang),
+            "prefLabel": self.get_in_language(self.prefLabels, lang=lang),
+            "altLabel": self.get_in_language(self.altLabels, lang=lang),
+            "scopeNote": self.get_in_language(self.scopeNotes, lang=lang),
             "scheme_iri": self.scheme_iri,
         }
 
