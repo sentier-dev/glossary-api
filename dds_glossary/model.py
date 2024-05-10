@@ -120,7 +120,7 @@ class ConceptScheme(Base):
         """
         return self.prefLabels.get(lang, self.prefLabels.get("en", ""))
 
-    def to_dict(self, lang: str) -> dict:
+    def to_dict(self, lang: str = "en") -> dict:
         """
         Return the ConceptScheme instance as a dictionary.
 
@@ -269,7 +269,7 @@ class Concept(Base):
         """
         return self.scopeNotes.get(lang, self.scopeNotes.get("en", ""))
 
-    def to_dict(self, lang: str) -> dict:
+    def to_dict(self, lang: str = "en") -> dict:
         """
         Return the Concept instance as a dictionary.
 
