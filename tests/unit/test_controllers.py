@@ -2,18 +2,13 @@
 
 from pytest import MonkeyPatch
 from pytest import raises as pytest_raises
+from sqlalchemy import Engine
 from sqlalchemy.exc import NoResultFound
-from sqlalchemy.orm import Session
 
 from dds_glossary.controllers import GlossaryController
-from dds_glossary.model import (
-    Concept,
-    ConceptScheme,
-    SemanticRelation,
-    SemanticRelationType,
-)
 
 from .. import FILE_RDF
+from ..common import add_concept_schemes, add_concepts, add_relations
 
 
 def _init_datasets(_monkeypatch: MonkeyPatch) -> None:
@@ -68,109 +63,36 @@ def test_init_dataset_with_failed_datasets(
     ]
 
 
-def test_get_concept_schemes(controller: GlossaryController) -> None:
+def test_get_concept_schemes(controller: GlossaryController, engine: Engine) -> None:
     """Test the GlossaryController get_concept_schemes method."""
-    iri = "http://example.org/concept_scheme"
-    with Session(controller.engine) as session:
-        session.add(
-            ConceptScheme(
-                iri=iri,
-                notation="notation",
-                scopeNote="scopeNote",
-                prefLabels={"en": "label"},
-            )
-        )
-        session.commit()
+    concept_schemes_dict = add_concept_schemes(engine, 1)
 
     concept_schemes = controller.get_concept_schemes()
-    assert len(concept_schemes) == 1
-    assert concept_schemes[0]["iri"] == iri
+    assert len(concept_schemes) == len(concept_schemes_dict)
+    assert concept_schemes == concept_schemes_dict
 
 
-def test_get_concepts(controller: GlossaryController) -> None:
+def test_get_concepts(controller: GlossaryController, engine: Engine) -> None:
     """Test the GlossaryController get_concepts method."""
-    concept_scheme_iri = "http://example.org/concept_scheme"
-    concept_iri = "http://example.org/concept"
-    with Session(controller.engine) as session:
-        session.add(
-            ConceptScheme(
-                iri=concept_scheme_iri,
-                notation="notation",
-                scopeNote="scopeNote",
-                prefLabels={"en": "label"},
-            )
-        )
-        session.add(
-            Concept(
-                iri=concept_iri,
-                identifier="identifier",
-                notation="notation",
-                prefLabels={"en": "label"},
-                altLabels={"en": "label"},
-                scopeNotes={"en": "scopeNote"},
-                scheme_iri=concept_scheme_iri,
-            )
-        )
-        session.commit()
+    concept_schemes_dict = add_concept_schemes(engine, 1)
+    concepts_dict = add_concepts(engine, concept_schemes_dict[0]["iri"], 1)
 
-    concepts = controller.get_concepts(concept_scheme_iri)
-    assert len(concepts) == 1
-    assert concepts[0]["iri"] == concept_iri
-    assert concepts[0]["scheme_iri"] == concept_scheme_iri
+    concepts = controller.get_concepts(concept_schemes_dict[0]["iri"])
+    assert len(concepts) == len(concepts_dict)
+    assert concepts == concepts_dict
 
 
-def test_get_concept(controller: GlossaryController) -> None:
+def test_get_concept(controller: GlossaryController, engine: Engine) -> None:
     """Test the GlossaryController get_concept method."""
-    concept_scheme_iri = "http://example.org/concept_scheme"
-    source_concept_iri = "http://example.org/concept1"
-    target_concept_iri = "http://example.org/concept2"
-    with Session(controller.engine) as session:
-        session.add(
-            ConceptScheme(
-                iri=concept_scheme_iri,
-                notation="notation",
-                scopeNote="scopeNote",
-                prefLabels={"en": "label"},
-            )
-        )
-        session.add(
-            Concept(
-                iri=source_concept_iri,
-                identifier="identifier",
-                notation="notation",
-                prefLabels={"en": "label"},
-                altLabels={"en": "label"},
-                scopeNotes={"en": "scopeNote"},
-                scheme_iri=concept_scheme_iri,
-            )
-        )
-        session.add(
-            Concept(
-                iri=target_concept_iri,
-                identifier="identifier",
-                notation="notation",
-                prefLabels={"en": "label"},
-                altLabels={"en": "label"},
-                scopeNotes={"en": "scopeNote"},
-                scheme_iri=concept_scheme_iri,
-            )
-        )
-        session.add(
-            SemanticRelation(
-                source_concept_iri=source_concept_iri,
-                target_concept_iri=target_concept_iri,
-                type=SemanticRelationType.RELATED,
-            )
-        )
-        session.commit()
+    concept_schemes_dict = add_concept_schemes(engine, 1)
+    concepts_dict = add_concepts(engine, concept_schemes_dict[0]["iri"], 2)
+    relations_dict = add_relations(
+        engine, [(concepts_dict[0]["iri"], concepts_dict[1]["iri"])]
+    )
+    concepts_dict[0]["relations"] = [relations_dict[0]]
 
-    concept = controller.get_concept(source_concept_iri)
-    assert concept["iri"] == source_concept_iri
-    assert concept["scheme_iri"] == concept_scheme_iri
-    assert len(concept["relations"]) == 1
-    assert concept["relations"][0]["source_concept_iri"] == source_concept_iri
-    assert concept["relations"][0]["target_concept_iri"] == target_concept_iri
-    assert concept["relations"][0]["type"] == "related"
+    concept = controller.get_concept(concepts_dict[0]["iri"])
+    assert concept == concepts_dict[0]
 
 
 def test_get_concept_not_found(controller: GlossaryController) -> None:
