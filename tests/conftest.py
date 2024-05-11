@@ -15,12 +15,20 @@ from dds_glossary.main import app
 from dds_glossary.main import controller as app_controller
 from dds_glossary.model import Concept, ConceptScheme, SemanticRelation
 
-from . import FILE_RDF
+
+@fixture(name="dir_data")
+def _dir_data() -> Path:
+    return Path(__file__).parent / "data"
+
+
+@fixture(name="file_rdf")
+def _file_rdf(dir_data: Path) -> Path:
+    return dir_data / "sample.rdf"
 
 
 @fixture(name="root_element")
-def _root_element():
-    tree = parse_xml(FILE_RDF)
+def _root_element(file_rdf: Path):
+    tree = parse_xml(file_rdf)
     return tree.getroot()
 
 
