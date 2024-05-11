@@ -13,7 +13,7 @@ from dds_glossary.controllers import GlossaryController
 from dds_glossary.database import init_engine
 from dds_glossary.main import app
 from dds_glossary.main import controller as app_controller
-from dds_glossary.model import Concept, ConceptScheme, SemanticRelation
+from dds_glossary.model import Concept, ConceptScheme, InScheme, SemanticRelation
 
 
 @fixture(name="dir_data")
@@ -48,6 +48,15 @@ def _concept(
     return Concept.from_xml_element(
         root_element.find("core:Concept", namespaces=root_element.nsmap)
     )
+
+
+@fixture(name="in_scheme")
+def _in_scheme(
+    root_element,  # pylint: disable=redefined-outer-name
+) -> InScheme:
+    return InScheme.from_xml_element(
+        root_element.find("core:Concept", namespaces=root_element.nsmap)
+    )[0]
 
 
 @fixture(name="semantic_relation")

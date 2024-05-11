@@ -6,7 +6,7 @@ from typing import ClassVar
 
 from sqlalchemy import ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, backref, mapped_column, relationship
 
 
 class SemanticRelationType(Enum):
@@ -100,8 +100,8 @@ class ConceptScheme(Base):
         prefLabels (dict[str, str]): The preferred labels of the concept scheme. This
             is a dictionary where the key is the language code and the value is the
             label in that language. To get the preferred label in a specific language,
-            use the `get_pref_label` method.
-        concepts (List[Concept]): The concepts of the concept scheme.
+            use the `get_in_language` method.
+        concepts (list[Concept]): The concepts of the concept scheme.
     """
 
     __tablename__ = "concept_schemes"
@@ -111,7 +111,12 @@ class ConceptScheme(Base):
     scopeNote: Mapped[str] = mapped_column()
     prefLabels: Mapped[dict[str, str]] = mapped_column()
 
-    concepts: Mapped[list["Concept"]] = relationship(back_populates="scheme")
+    concepts: Mapped[list["Concept"]] = relationship(
+        secondary="in_scheme",
+        backref=backref("ConceptScheme", uselist=False),
+        cascade="all, delete",
+        viewonly=True,
+    )
 
     @classmethod
     def from_xml_element(cls, element) -> "ConceptScheme":
@@ -175,18 +180,17 @@ class Concept(Base):
         prefLabels (dict[str, str]): The preferred labels of the concept. This is a
             dictionary where the key is the language code and the value is the label in
             that language. To get the preferred label in a specific language, use the
-            `get_pref_label` method.
+            `get_in_language` method.
         altLabels (dict[str, str]): The alternative labels of the concept. This is a
             dictionary where the key is the language code and the value is the label in
             that language. To get the alternative label in a specific language, use the
-            `get_alt_label` method.
+            `get_in_language` method.
         scopeNotes (dict[str, str]): The scope notes of the concept.
             This is a dictionary where the key is the language code and the value is the
             note in that language. To get the scope note in a specific language, use the
-            `get_scope_note` method.
-        scheme_iri (str): The Internationalized Resource Identifier of the concept
-            scheme to which the concept belongs.
-        scheme (ConceptScheme): The concept scheme to which the concept belongs.
+            `get_in_language` method.
+        concept_schemes (list[ConceptScheme]): The concept schemes to which the concept
+            belongs.
     """
 
     __tablename__ = "concepts"
@@ -197,9 +201,6 @@ class Concept(Base):
     prefLabels: Mapped[dict[str, str]] = mapped_column()
     altLabels: Mapped[dict[str, str]] = mapped_column()
     scopeNotes: Mapped[dict[str, str]] = mapped_column()
-
-    scheme_iri: Mapped[str] = mapped_column(ForeignKey("concept_schemes.iri"))
-    scheme: Mapped[ConceptScheme] = relationship(back_populates="concepts")
 
     @classmethod
     def from_xml_element(cls, element) -> "Concept":
@@ -229,9 +230,6 @@ class Concept(Base):
                 note.get(f"{cls.xml_namespace}lang"): note.text
                 for note in element.findall("core:scopeNote", namespaces=element.nsmap)
             },
-            scheme_iri=element.find("core:inScheme", namespaces=element.nsmap).get(
-                f"{{{element.nsmap['rdf']}}}resource"
-            ),
         )
 
     def to_dict(self, lang: str = "en") -> dict:
@@ -252,6 +250,70 @@ class Concept(Base):
             "prefLabel": self.get_in_language(self.prefLabels, lang=lang),
             "altLabel": self.get_in_language(self.altLabels, lang=lang),
             "scopeNote": self.get_in_language(self.scopeNotes, lang=lang),
+        }
+
+
+class InScheme(Base):  # pylint: disable=too-few-public-methods
+    """
+    The property skos:inScheme is used to indicate the concept scheme to which a
+    particular concept belongs. The value of the skos:inScheme property is a reference
+    to a concept scheme. A triple <C> skos:inScheme <S> asserts that the concept <C>
+    is a member of the concept scheme <S>. By convention, skos:inScheme is only used to
+    assert membership of a concept in a concept scheme. This provides applications with
+    a convenient and reliable way to access the concept scheme of any given concept. A
+    given concept may be a member of more than one concept scheme.
+
+    For more information, check: https://www.w3.org/TR/skos-reference/#schemes.
+
+    Attributes:
+        concept_iri (str): The Internationalized Resource Identifier of the concept.
+        scheme_iri (str): The Internationalized Resource Identifier of the concept
+            scheme.
+        concept (Concept): The concept to which the concept scheme belongs.
+        scheme (ConceptScheme): The concept scheme to which the concept belongs.
+    """
+
+    __tablename__ = "in_scheme"
+
+    concept_iri: Mapped[str] = mapped_column(
+        ForeignKey("concepts.iri", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    scheme_iri: Mapped[str] = mapped_column(
+        ForeignKey("concept_schemes.iri", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    concept: Mapped[Concept] = relationship(foreign_keys=[concept_iri])
+    scheme: Mapped[ConceptScheme] = relationship(foreign_keys=[scheme_iri])
+
+    @classmethod
+    def from_xml_element(cls, element) -> list["InScheme"]:
+        """
+        Return a list of InScheme instances from an XML element.
+
+        Args:
+            element (ElementBase): The XML element to parse.
+
+        Returns:
+            list[InScheme]: The parsed list of InScheme instances.
+        """
+        return [
+            InScheme(
+                concept_iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
+                scheme_iri=scheme.get(f"{{{element.nsmap['rdf']}}}resource"),
+            )
+            for scheme in element.findall("core:inScheme", namespaces=element.nsmap)
+        ]
+
+    def to_dict(self) -> dict:
+        """
+        Return the InScheme instance as a dictionary.
+
+        Returns:
+            dict: The InScheme instance as a dictionary.
+        """
+        return {
+            "concept_iri": self.concept_iri,
             "scheme_iri": self.scheme_iri,
         }
 
@@ -314,10 +376,12 @@ class SemanticRelation(Base):
     type: Mapped[SemanticRelationType] = mapped_column()
 
     source_concept_iri: Mapped[str] = mapped_column(
-        ForeignKey("concepts.iri"), primary_key=True
+        ForeignKey("concepts.iri"),
+        primary_key=True,
     )
     target_concept_iri: Mapped[str] = mapped_column(
-        ForeignKey("concepts.iri"), primary_key=True
+        ForeignKey("concepts.iri"),
+        primary_key=True,
     )
     source_concept: Mapped["Concept"] = relationship(foreign_keys=[source_concept_iri])
     target_concept: Mapped["Concept"] = relationship(foreign_keys=[target_concept_iri])

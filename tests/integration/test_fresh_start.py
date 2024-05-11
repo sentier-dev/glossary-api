@@ -71,7 +71,6 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
                 "prefLabel": "0203 21 -- Trupy a polovičky trupov",
                 "altLabel": "-- Trupy a polovičky trupov",
                 "scopeNote": "Frozen carcases and half-carcases of swine",
-                "scheme_iri": concept_scheme_iri,
             },
             {
                 "iri": "http://data.europa.eu/xsp/cn2024/020321000010",
@@ -80,7 +79,6 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
                 "prefLabel": "- Mrazené",
                 "altLabel": "- Frozen",
                 "scopeNote": "",
-                "scheme_iri": concept_scheme_iri,
             },
         ]
     }
@@ -92,6 +90,7 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
     assert response.headers["content-type"] == "application/json"
     assert response.json() == {
         **concept_dict,
+        "inSchemes": [concept_scheme_iri],
         "relations": [
             {
                 "source_concept_iri": concept_dict["iri"],
