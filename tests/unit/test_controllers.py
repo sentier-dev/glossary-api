@@ -1,5 +1,7 @@
 """Tests for dds_glossary.controllers module."""
 
+from pathlib import Path
+
 from pytest import MonkeyPatch
 from pytest import raises as pytest_raises
 from sqlalchemy import Engine
@@ -7,7 +9,6 @@ from sqlalchemy.exc import NoResultFound
 
 from dds_glossary.controllers import GlossaryController
 
-from .. import FILE_RDF
 from ..common import add_concept_schemes, add_concepts, add_relations
 
 
@@ -18,14 +19,16 @@ def _init_datasets(_monkeypatch: MonkeyPatch) -> None:
     )
 
 
-def test_glossary_controller_parse_dataset(controller: GlossaryController) -> None:
+def test_glossary_controller_parse_dataset(
+    controller: GlossaryController,
+    file_rdf: Path,
+) -> None:
     """Test the GlossaryController parse_dataset method."""
     concept_scheme_iri = "http://data.europa.eu/xsp/cn2024/cn2024"
     concept1_iri = "http://data.europa.eu/xsp/cn2024/020321000080"
     concept2_iri = "http://data.europa.eu/xsp/cn2024/020321000010"
-    dataset_path = FILE_RDF
     concept_schemes, concepts, semantic_relations = controller.parse_dataset(
-        dataset_path=dataset_path
+        dataset_path=file_rdf
     )
 
     assert len(concept_schemes) == 1
@@ -39,12 +42,14 @@ def test_glossary_controller_parse_dataset(controller: GlossaryController) -> No
 
 
 def test_init_dataset_with_failed_datasets(
-    controller: GlossaryController, monkeypatch: MonkeyPatch
+    controller: GlossaryController,
+    monkeypatch: MonkeyPatch,
+    file_rdf: Path,
 ) -> None:
     """Test the GlossaryController init_datasets method with an exception."""
     _init_datasets(monkeypatch)
     GlossaryController.datasets = {
-        "sample.rdf": str(FILE_RDF),
+        "sample.rdf": str(file_rdf),
         "test.rdf": "test.rdf",
     }
 
@@ -52,8 +57,8 @@ def test_init_dataset_with_failed_datasets(
     files = list(controller.data_dir.iterdir())
 
     assert len(files) == 1
-    assert files[0].read_bytes() == FILE_RDF.read_bytes()
-    assert saved_datasets == [{"dataset": "sample.rdf", "dataset_url": str(FILE_RDF)}]
+    assert files[0].read_bytes() == file_rdf.read_bytes()
+    assert saved_datasets == [{"dataset": "sample.rdf", "dataset_url": str(file_rdf)}]
     assert failed_datasets == [
         {
             "dataset": "test.rdf",

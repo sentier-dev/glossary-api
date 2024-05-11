@@ -1,6 +1,7 @@
 """Integration test for a fresh start scenario."""
 
 from http import HTTPStatus
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 from owlready2 import onto_path
@@ -8,13 +9,11 @@ from owlready2 import onto_path
 from dds_glossary.controllers import GlossaryController
 from dds_glossary.main import controller
 
-from .. import DIR_DATA
 
-
-def test_fresh_start(client: TestClient) -> None:
+def test_fresh_start(client: TestClient, dir_data: Path) -> None:
     """Test the /fresh_start endpoint."""
-    controller.data_dir = DIR_DATA
-    onto_path.append(str(DIR_DATA))
+    controller.data_dir = dir_data
+    onto_path.append(str(dir_data))
     saved_dataset_file = "sample.rdf"
     saved_database_url = "https://example.com/sample.rdf"
     failed_dataset_file = "failed_dataset.rdf"
