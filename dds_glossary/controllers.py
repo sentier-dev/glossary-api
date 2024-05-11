@@ -12,11 +12,12 @@ from .database import (
     get_concept,
     get_concept_schemes,
     get_concepts,
+    get_in_schemes,
     get_relations,
     init_engine,
     save_dataset,
 )
-from .model import Concept, ConceptScheme, SemanticRelation
+from .model import Concept, ConceptScheme, InScheme, SemanticRelation
 
 
 class GlossaryController:
@@ -59,7 +60,9 @@ class GlossaryController:
     def parse_dataset(
         self,
         dataset_path: Path,
-    ) -> tuple[list[ConceptScheme], list[Concept], list[SemanticRelation]]:
+    ) -> tuple[
+        list[ConceptScheme], list[Concept], list[InScheme], list[SemanticRelation]
+    ]:
         """
         Parse a dataset.
 
@@ -81,12 +84,15 @@ class GlossaryController:
             Concept.from_xml_element(concept_element)
             for concept_element in concept_elements
         ]
+        in_schemes: list[InScheme] = []
+        for concept_element in concept_elements:
+            in_schemes.extend(InScheme.from_xml_element(concept_element))
         semantic_relations: list[SemanticRelation] = []
         for concept_element in concept_elements:
             semantic_relations.extend(
                 SemanticRelation.from_xml_element(concept_element)
             )
-        return concept_schemes, concepts, semantic_relations
+        return concept_schemes, concepts, in_schemes, semantic_relations
 
     def init_datasets(
         self,
@@ -178,6 +184,10 @@ class GlossaryController:
         if concept_dict:
             return {
                 **concept_dict.to_dict(lang=lang),
+                "inSchemes": [
+                    in_scheme.scheme_iri
+                    for in_scheme in get_in_schemes(self.engine, concept_iri)
+                ],
                 "relations": [
                     relation.to_dict()
                     for relation in get_relations(self.engine, concept_iri)
