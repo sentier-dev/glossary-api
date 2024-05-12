@@ -6,10 +6,27 @@ from fastapi import FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import NoResultFound
 
+from . import __version__
 from .controllers import GlossaryController
 
 app = FastAPI()
 controller = GlossaryController()
+
+
+@app.get("/version")
+def get_version() -> JSONResponse:
+    """Get the version of the server.
+
+    Returns:
+        JSONResponse: The version of the server.
+    """
+    return JSONResponse(
+        content={
+            "version": __version__,
+        },
+        media_type="application/json",
+        status_code=HTTPStatus.OK,
+    )
 
 
 @app.post("/init_datasets")
