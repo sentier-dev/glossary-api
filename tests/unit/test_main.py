@@ -5,6 +5,16 @@ from http import HTTPStatus
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 
+from dds_glossary import __version__
+
+
+def test_version(client: TestClient) -> None:
+    """Test the /version endpoint."""
+    response = client.get("/version")
+    assert response.status_code == HTTPStatus.OK
+    assert response.headers["content-type"] == "application/json"
+    assert response.json() == {"version": __version__}
+
 
 def test_init_datasets(client: TestClient, monkeypatch: MonkeyPatch) -> None:
     """Test the /init_datasets endpoint."""

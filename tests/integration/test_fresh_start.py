@@ -6,6 +6,7 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from owlready2 import onto_path
 
+from dds_glossary import __version__
 from dds_glossary.controllers import GlossaryController
 from dds_glossary.main import controller
 
@@ -22,6 +23,11 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
         saved_dataset_file: saved_database_url,
         failed_dataset_file: failed_database_url,
     }
+
+    response = client.get("/version")
+    assert response.status_code == HTTPStatus.OK
+    assert response.headers["content-type"] == "application/json"
+    assert response.json() == {"version": __version__}
 
     response = client.post("/init_datasets")
     assert response.status_code == HTTPStatus.OK
