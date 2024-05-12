@@ -29,24 +29,28 @@ class GlossaryController:
         data_dir (Path): The data directory for saving the datasets.
     """
 
-    base_url: ClassVar[str] = "http://publications.europa.eu/resource/distribution/"
+    europa_url: ClassVar[str] = "http://publications.europa.eu/resource/distribution/"
+    fao_url: ClassVar[str] = (
+        "https://storage.googleapis.com/fao-datalab-caliper/Downloads/"
+    )
     datasets: ClassVar[dict[str, str]] = {
         "ESTAT-CN2024.rdf": (
-            base_url
+            europa_url
             + "combined-nomenclature-2024/20240425-0/rdf/skos_core/ESTAT-CN2024.rdf"
         ),
         "ESTAT-LoW2015.rdf": (
-            base_url + "low2015/20240425-0/rdf/skos_core/ESTAT-LoW2015.rdf"
+            europa_url + "low2015/20240425-0/rdf/skos_core/ESTAT-LoW2015.rdf"
         ),
         "ESTAT-NACE2.1.rdf": (
-            base_url + "nace2.1/20240425-0/rdf/skos_core/ESTAT-NACE2.1.rdf"
+            europa_url + "nace2.1/20240425-0/rdf/skos_core/ESTAT-NACE2.1.rdf"
         ),
         "ESTAT-ICST-COM.rdf": (
-            base_url + "icst-com/20240425-0/rdf/skos_core/ESTAT-ICST-COM.rdf"
+            europa_url + "icst-com/20240425-0/rdf/skos_core/ESTAT-ICST-COM.rdf"
         ),
         "ESTAT-PRODCOM2023.rdf": (
-            base_url + "prodcom2023/20240425-0/rdf/skos_core/ESTAT-PRODCOM2023.rdf"
+            europa_url + "prodcom2023/20240425-0/rdf/skos_core/ESTAT-PRODCOM2023.rdf"
         ),
+        "ISIC4.rdf": fao_url + "ISICRev4/ISIC4.rdf",
     }
 
     def __init__(
