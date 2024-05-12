@@ -7,8 +7,11 @@ from sqlalchemy.orm import Session
 
 from dds_glossary.database import (
     get_concept,
+    get_concept_collection,
+    get_concept_collections,
     get_concept_schemes,
     get_concepts,
+    get_in_collections,
     get_in_schemes,
     get_relations,
     init_engine,
@@ -16,13 +19,15 @@ from dds_glossary.database import (
 )
 from dds_glossary.model import (
     Concept,
+    ConceptCollection,
     ConceptScheme,
+    InCollection,
     InScheme,
     SemanticRelation,
     SemanticRelationType,
 )
 
-from ..common import add_concept_schemes, add_concepts, add_relations
+from ..common import add_concept_schemes, add_concepts, add_relations, add_concept_collections
 
 
 def engine_init_checks(engine: Engine) -> None:
@@ -83,10 +88,13 @@ def test_init_engine_database_exists_drop() -> None:
 
 def test_save_dataset_with_no_data(engine: Engine) -> None:
     """Test the save_dataset function with empty data."""
-    save_dataset(engine, [], [], [], [])
+    save_dataset(engine, [], [], [], [], [], [])
     with Session(engine) as session:
         assert session.query(ConceptScheme).count() == 0
         assert session.query(Concept).count() == 0
+        assert session.query(ConceptCollection).count() == 0
+        assert session.query(InCollection).count() == 0
+        assert session.query(InScheme).count() == 0
         assert session.query(SemanticRelation).count() == 0
 
 
@@ -95,6 +103,7 @@ def test_save_dataset_with_data(engine: Engine) -> None:
     concept_scheme_iri = "http://example.org/concept_scheme"
     concept1_iri = "http://example.org/concept1"
     concept2_iri = "http://example.org/concept2"
+    concept_collection_iri = "http://example.org/collection"
     concept_schemes = [
         ConceptScheme(
             iri=concept_scheme_iri,
@@ -121,13 +130,26 @@ def test_save_dataset_with_data(engine: Engine) -> None:
             scopeNotes=["Concept2 Scope Note"],
         ),
     ]
+    concept_collections = [
+        ConceptCollection(
+            iri=concept_collection_iri,
+            notation="Collection Notation",
+            prefLabels=[{"en": "Collection Pref Label"}],
+        )
+    ]
+    in_collections = [
+        InCollection(
+            member_iri=concepts[0].iri,
+            collection_iri=concept_collections[0].iri,
+        )
+    ]
     in_schemes = [
         InScheme(
-            concept_iri=concepts[0].iri,
+            member_iri=concepts[0].iri,
             scheme_iri=concept_schemes[0].iri,
         ),
         InScheme(
-            concept_iri=concepts[1].iri,
+            member_iri=concepts[1].iri,
             scheme_iri=concept_schemes[0].iri,
         ),
     ]
@@ -138,14 +160,26 @@ def test_save_dataset_with_data(engine: Engine) -> None:
             target_concept_iri=concepts[1].iri,
         )
     ]
-    save_dataset(engine, concept_schemes, concepts, in_schemes, semantic_relations)
+    save_dataset(
+        engine=engine,
+        concept_schemes=concept_schemes,
+        concepts=concepts,
+        concepts_collections=concept_collections,
+        in_schemes=in_schemes,
+        in_collections=in_collections,
+        semantic_relations=semantic_relations,
+    )
 
     with Session(engine) as session:
         assert session.query(ConceptScheme).count() == 1
         assert session.query(Concept).count() == 2
+        assert session.query(ConceptCollection).count() == 1
+        assert session.query(InCollection).count() == 1
         assert session.query(SemanticRelation).count() == 1
         assert session.query(ConceptScheme).one().iri == concept_scheme_iri
         assert session.query(Concept).all()[0].iri == concept1_iri
+        assert session.query(ConceptCollection).one().iri == concept_collection_iri
+        assert session.query(InCollection).one().member_iri == concept1_iri
         assert session.query(SemanticRelation).one().source_concept_iri == concept1_iri
         assert session.query(SemanticRelation).one().target_concept_iri == concept2_iri
 
@@ -167,6 +201,15 @@ def test_get_concepts(engine: Engine) -> None:
     concepts = get_concepts(engine, concept_schemes_dict[0]["iri"])
     assert len(concepts) == len(concepts_dict)
     assert concepts[0].to_dict() == concepts_dict[0]
+
+
+def test_get_concept_collections(engine: Engine) -> None:
+    """Test the get_concept_collections."""
+    concept_collections_dict = add_concept_collections(engine, 1)
+
+    concept_collections = get_concept_collections(engine, concept_collections_dict[0]["iri"])
+    assert len(concept_collections) == len(concept_collections_dict)
+    assert concept_collections[0].to_dict() == concept_collections_dict[0]
 
 
 def test_get_concept(engine: Engine) -> None:

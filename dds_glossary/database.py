@@ -7,7 +7,15 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
-from .model import Base, Concept, ConceptScheme, InScheme, SemanticRelation
+from .model import (
+    Base,
+    Concept,
+    ConceptCollection,
+    ConceptScheme,
+    InCollection,
+    InScheme,
+    SemanticRelation,
+)
 
 
 def init_engine(
@@ -51,7 +59,9 @@ def save_dataset(
     engine: Engine,
     concept_schemes: list[ConceptScheme],
     concepts: list[Concept],
+    concepts_collections: list[ConceptCollection],
     in_schemes: list[InScheme],
+    in_collections: list[InCollection],
     semantic_relations: list[SemanticRelation],
 ) -> None:
     """
@@ -61,12 +71,17 @@ def save_dataset(
         engine (Engine): The database engine.
         concept_schemes (list[ConceptScheme]): The concept schemes.
         concepts (list[Concept]): The concepts.
+        concepts_collections (list[ConceptCollection]): The concept collections.
+        in_schemes (list[InScheme]): The scheme relations.
+        in_collections (list[InCollection]): The collection relations.
         semantic_relations (list[SemanticRelation]): The semantic relations.
     """
     with Session(engine) as session:
         session.add_all(concept_schemes)
         session.add_all(concepts)
+        session.add_all(concepts_collections)
         session.add_all(in_schemes)
+        session.add_all(in_collections)
         session.add_all(semantic_relations)
         session.commit()
 
@@ -102,6 +117,26 @@ def get_concepts(engine: Engine, concept_scheme_iri: str) -> list[Concept]:
         )
 
 
+def get_concept_collections(engine: Engine, concept_scheme_iri: str) -> list[ConceptCollection]:
+    """
+    Get the concept collections from the database.
+
+    Args:
+        engine (Engine): The database engine.
+        concept_scheme_iri (str): The concept scheme IRI.
+
+    Returns:
+        list[ConceptCollection]: The concept collections.
+    """
+    with Session(engine) as session:
+        return (
+            session.query(ConceptCollection)
+            .join(InCollection)
+            .where(InCollection.collection_iri == concept_scheme_iri)
+            .all()
+        )
+
+
 def get_concept(engine: Engine, concept_iri: str) -> Concept | None:
     """
     Get the concept from the database, if found.
@@ -117,7 +152,22 @@ def get_concept(engine: Engine, concept_iri: str) -> Concept | None:
         return session.query(Concept).where(Concept.iri == concept_iri).one_or_none()
 
 
-def get_in_schemes(engine: Engine, concept_iri: str) -> list[InScheme]:
+def get_concept_collection(engine: Engine, collection_iri: str) -> ConceptCollection | None:
+    """
+    Get the concept collection from the database, if found.
+
+    Args:
+        engine (Engine): The database engine.
+        collection_iri (str): The collection IRI.
+
+    Return:
+        ConceptCollection | None: The concept collection or None if not found.
+    """
+    with Session(engine) as session:
+        return session.query(ConceptCollection).where(ConceptCollection.iri == collection_iri).one_or_none()
+
+
+def get_in_schemes(engine: Engine, member_iri: str) -> list[InScheme]:
     """
     Get the in schemes from the database.
 
@@ -129,7 +179,22 @@ def get_in_schemes(engine: Engine, concept_iri: str) -> list[InScheme]:
         list[InScheme]: The in schemes.
     """
     with Session(engine) as session:
-        return session.query(InScheme).where(InScheme.concept_iri == concept_iri).all()
+        return session.query(InScheme).where(InScheme.member_iri == member_iri).all()
+
+
+def get_in_collections(engine: Engine, member_iri: str) -> list[InCollection]:
+    """
+    Get the in collections from the database.
+
+    Args:
+        engine (Engine): The database engine.
+        concept_iri (str): The concept IRI.
+
+    Returns:
+        list[InCollection]: The in collections.
+    """
+    with Session(engine) as session:
+        return session.query(InCollection).where(InCollection.member_iri == member_iri).all()
 
 
 def get_relations(engine: Engine, concept_iri: str) -> list[SemanticRelation]:

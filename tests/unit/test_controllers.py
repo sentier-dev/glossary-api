@@ -37,9 +37,9 @@ def test_glossary_controller_parse_dataset(
     assert concept_schemes[0].iri == concept_scheme_iri
     assert concepts[0].iri == concept1_iri
     assert concepts[1].iri == concept2_iri
-    assert in_schemes[0].concept_iri == concept1_iri
+    assert in_schemes[0].member_iri == concept1_iri
     assert in_schemes[0].scheme_iri == concept_scheme_iri
-    assert in_schemes[1].concept_iri == concept2_iri
+    assert in_schemes[1].member_iri == concept2_iri
     assert in_schemes[1].scheme_iri == concept_scheme_iri
     assert semantic_relations[0].source_concept_iri == concept1_iri
     assert semantic_relations[0].target_concept_iri == concept2_iri

@@ -51,5 +51,11 @@
   <core:altLabel xml:lang="es">- Congelada</core:altLabel>
 </core:Concept>
 
+<core:Collection rdf:about="https://unstats.un.org/classifications/CPC/v2.1/ag/expansion_only">
+  <core:inScheme rdf:resource="https://unstats.un.org/classifications/CPC/v2.1/ag"/>
+  <core:member rdf:resource="http://data.europa.eu/xsp/cn2024/020321000010"/>
+  <core:prefLabel xml:lang="en">CPC 2.1 Expanded for Agriculture and Rural Statistics - Expansion terms ONLY</core:prefLabel>
+  <core:notation rdf:datatype="http://www.w3.org/2001/XMLSchema#string">expansion_only</core:notation>
+</core:Collection>
 
 </rdf:RDF>

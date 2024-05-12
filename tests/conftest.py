@@ -13,7 +13,14 @@ from dds_glossary.controllers import GlossaryController
 from dds_glossary.database import init_engine
 from dds_glossary.main import app
 from dds_glossary.main import controller as app_controller
-from dds_glossary.model import Concept, ConceptScheme, InScheme, SemanticRelation
+from dds_glossary.model import (
+    Concept,
+    ConceptCollection,
+    ConceptScheme,
+    InCollection,
+    InScheme,
+    SemanticRelation,
+)
 
 
 @fixture(name="dir_data")
@@ -41,6 +48,15 @@ def _concept_scheme(
     )
 
 
+@fixture(name="concept_collection")
+def _concept_collection(
+    root_element,  # pylint: disable=redefined-outer-name
+) -> list[ConceptCollection]:
+    return ConceptCollection.from_xml_element(
+        root_element.find("core:Collection", namespaces=root_element.nsmap)
+    )
+
+
 @fixture(name="concept")
 def _concept(
     root_element,  # pylint: disable=redefined-outer-name
@@ -48,6 +64,15 @@ def _concept(
     return Concept.from_xml_element(
         root_element.find("core:Concept", namespaces=root_element.nsmap)
     )
+
+
+@fixture(name="in_collection")
+def _in_collection(
+    root_element,  # pylint: disable=redefined-outer-name
+) -> InCollection:
+    return InCollection.from_xml_element(
+        root_element.find("core:Collection", namespaces=root_element.nsmap)
+    )[0]
 
 
 @fixture(name="in_scheme")

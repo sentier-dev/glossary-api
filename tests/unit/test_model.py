@@ -3,7 +3,9 @@
 from dds_glossary.model import (
     Base,
     Concept,
+    ConceptCollection,
     ConceptScheme,
+    InCollection,
     InScheme,
     SemanticRelation,
     SemanticRelationType,
@@ -104,6 +106,24 @@ def test_concept_scheme_to_dict(concept_scheme: ConceptScheme) -> None:
     }
 
 
+def test_concept_collection_from_xml_element(concept_collection: ConceptCollection) -> None:
+    """It should return a ConceptCollection instance from an XML element."""
+    assert concept_collection.iri == "https://unstats.un.org/classifications/CPC/v2.1/ag/expansion_only"
+    assert concept_collection.notation == "expansion_only"
+    assert concept_collection.prefLabels == {
+        "en": "CPC 2.1 Expanded for Agriculture and Rural Statistics - Expansion terms ONLY"
+    }
+
+
+def test_concept_collection_to_dict(concept_collection: ConceptCollection) -> None:
+    """It should return a dictionary representation of the ConceptCollection instance."""
+    assert concept_collection.to_dict("en") == {
+        "iri": "https://unstats.un.org/classifications/CPC/v2.1/ag/expansion_only",
+        "notation": "expansion_only",
+        "prefLabel": "CPC 2.1 Expanded for Agriculture and Rural Statistics - Expansion terms ONLY",
+    }
+
+
 def test_concept_from_xml_element(concept: Concept) -> None:
     """It should return a Concept instance from an XML element."""
     assert concept.iri == "http://data.europa.eu/xsp/cn2024/020321000080"
@@ -143,15 +163,29 @@ def test_concept_to_dict(concept: Concept) -> None:
 
 def test_in_scheme_from_xml_element(in_scheme: InScheme) -> None:
     """It should return an InScheme instance from an XML element."""
-    assert in_scheme.concept_iri == "http://data.europa.eu/xsp/cn2024/020321000080"
+    assert in_scheme.member_iri == "http://data.europa.eu/xsp/cn2024/020321000080"
     assert in_scheme.scheme_iri == "http://data.europa.eu/xsp/cn2024/cn2024"
 
 
 def test_in_scheme_to_dict(in_scheme: InScheme) -> None:
     """It should return a dictionary representation of the InScheme instance."""
     assert in_scheme.to_dict() == {
-        "concept_iri": "http://data.europa.eu/xsp/cn2024/020321000080",
+        "member_iri": "http://data.europa.eu/xsp/cn2024/020321000080",
         "scheme_iri": "http://data.europa.eu/xsp/cn2024/cn2024",
+    }
+
+
+def test_in_collection_from_xml_element(in_collection: InCollection) -> None:
+    """It should return an InCollection instance from an XML element."""
+    assert in_collection.member_iri == "http://data.europa.eu/xsp/cn2024/020321000010"
+    assert in_collection.collection_iri == "https://unstats.un.org/classifications/CPC/v2.1/ag/expansion_only"
+
+
+def test_in_collection_to_dict(in_collection: InCollection) -> None:
+    """It should return a dictionary representation of the InCollection instance."""
+    assert in_collection.to_dict() == {
+        "member_iri": "http://data.europa.eu/xsp/cn2024/020321000010",
+        "collection_iri": "https://unstats.un.org/classifications/CPC/v2.1/ag/expansion_only",
     }
 
 

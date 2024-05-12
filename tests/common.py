@@ -5,7 +5,9 @@ from sqlalchemy.orm import Session
 
 from dds_glossary.model import (
     Concept,
+    ConceptCollection,
     ConceptScheme,
+    InCollection,
     InScheme,
     SemanticRelation,
     SemanticRelationType,
@@ -47,7 +49,7 @@ def add_concepts(
         ]
         in_schemes = [
             InScheme(
-                concept_iri=concepts[i].iri,
+                member_iri=concepts[i].iri,
                 scheme_iri=entries[i][1],
             )
             for i in range(len(entries))
@@ -59,6 +61,30 @@ def add_concepts(
             [concept.to_dict() for concept in concepts],
             [in_scheme.scheme_iri for in_scheme in in_schemes],
         )
+
+
+def add_concept_collections(engine: Engine, entries: list[tuple[str, str]]) -> list[dict]:
+    """Add concept collections to the database."""
+    with Session(engine) as session:
+        concept_collections = [
+            ConceptCollection(
+                iri=entry[0],
+                notation="Collection Notation",
+                prefLabels={"en": "Collection Pref Label"},
+            )
+            for entry in entries
+        ]
+        in_collections = [
+            InCollection(
+                member_iri=entry[1],
+                collection_iri=entry[0],
+            )
+            for entry in entries
+        ]
+        session.add_all(concept_collections)
+        session.add_all(in_collections)
+        session.commit()
+        return [concept_collection.to_dict() for concept_collection in concept_collections]
 
 
 def add_relations(engine: Engine, entries: list[tuple[str, str]]) -> list[dict]:
