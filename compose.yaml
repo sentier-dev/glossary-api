@@ -25,6 +25,7 @@ services:
       dockerfile: Dockerfile
     environment:
         DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
+        API_KEY: ${API_KEY}
     ports:
       - "8000:8000"
     command: ["uvicorn", "dds_glossary.main:app", "--host", "0.0.0.0"]

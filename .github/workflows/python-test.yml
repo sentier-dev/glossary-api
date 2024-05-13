@@ -30,6 +30,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       DATABASE_URL: postgresql+psycopg://user:password@localhost:5432/testdb
+      API_KEY: test_api_key
 
     strategy:
       matrix:

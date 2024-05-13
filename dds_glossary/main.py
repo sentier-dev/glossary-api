@@ -2,11 +2,12 @@
 
 from http import HTTPStatus
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse
 from sqlalchemy.exc import NoResultFound
 
 from . import __version__
+from .auth import get_api_key
 from .controllers import GlossaryController
 
 app = FastAPI()
@@ -30,7 +31,10 @@ def get_version() -> JSONResponse:
 
 
 @app.post("/init_datasets")
-def init_datasets(reload: bool = False) -> JSONResponse:
+def init_datasets(
+    _api_key: dict = Depends(get_api_key),
+    reload: bool = False,
+) -> JSONResponse:
     """Initialize the datasets.
 
     Returns:

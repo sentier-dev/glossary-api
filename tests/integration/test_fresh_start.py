@@ -1,7 +1,9 @@
 """Integration test for a fresh start scenario."""
 
 from http import HTTPStatus
+from os import getenv as os_getenv
 from pathlib import Path
+from typing import Mapping
 
 from fastapi.testclient import TestClient
 from owlready2 import onto_path
@@ -29,7 +31,9 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
     assert response.headers["content-type"] == "application/json"
     assert response.json() == {"version": __version__}
 
-    response = client.post("/init_datasets")
+    api_key = os_getenv("API_KEY", "")
+    headers: Mapping[str, str] = {"X-API-Key": api_key}
+    response = client.post("/init_datasets", headers=headers)
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
     assert response.json() == {
