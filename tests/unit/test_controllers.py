@@ -1,10 +1,11 @@
 """Tests for dds_glossary.controllers module."""
 
+from http import HTTPStatus
 from pathlib import Path
 
+from fastapi import HTTPException
 from pytest import MonkeyPatch
 from pytest import raises as pytest_raises
-from sqlalchemy.exc import NoResultFound
 
 from dds_glossary.controllers import GlossaryController
 
@@ -115,5 +116,7 @@ def test_get_concept(controller: GlossaryController) -> None:
 def test_get_concept_not_found(controller: GlossaryController) -> None:
     """Test the GlossaryController get_concept method with a concept not found."""
     concept_iri = "http://example.org/concept"
-    with pytest_raises(NoResultFound):
+    with pytest_raises(HTTPException) as exc_info:
         controller.get_concept(concept_iri)
+    assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
+    assert exc_info.value.detail == f"Concept {concept_iri} not found."

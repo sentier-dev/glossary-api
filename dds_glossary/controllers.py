@@ -1,12 +1,13 @@
 """Controller classes for the dds_glossary package."""
 
+from http import HTTPStatus
 from pathlib import Path
 from typing import ClassVar
 
 from appdirs import user_data_dir
 from defusedxml.lxml import parse as parse_xml
+from fastapi import HTTPException
 from owlready2 import get_ontology, onto_path
-from sqlalchemy.exc import NoResultFound
 
 from .database import (
     get_concept,
@@ -197,4 +198,7 @@ class GlossaryController:
                     for relation in get_relations(self.engine, concept_iri)
                 ],
             }
-        raise NoResultFound
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Concept {concept_iri} not found.",
+        )
