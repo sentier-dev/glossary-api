@@ -4,7 +4,6 @@ from http import HTTPStatus
 
 from fastapi import Depends, FastAPI
 from fastapi.responses import JSONResponse
-from sqlalchemy.exc import NoResultFound
 
 from . import __version__
 from .auth import get_api_key
@@ -93,17 +92,8 @@ def get_concept(concept_iri: str, lang: str = "en") -> JSONResponse:
     Returns:
         JSONResponse: The concept.
     """
-    try:
-        return JSONResponse(
-            content=controller.get_concept(concept_iri, lang=lang),
-            media_type="application/json",
-            status_code=HTTPStatus.OK,
-        )
-    except NoResultFound:
-        return JSONResponse(
-            content={
-                "error": f"Concept {concept_iri} not found.",
-            },
-            media_type="application/json",
-            status_code=HTTPStatus.NOT_FOUND,
-        )
+    return JSONResponse(
+        content=controller.get_concept(concept_iri, lang=lang),
+        media_type="application/json",
+        status_code=HTTPStatus.OK,
+    )
