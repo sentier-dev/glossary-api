@@ -16,7 +16,23 @@ def test_version(client: TestClient) -> None:
     assert response.json() == {"version": __version__}
 
 
-def test_init_datasets(client: TestClient, monkeypatch: MonkeyPatch) -> None:
+def test_init_datasets_missing_key(client: TestClient) -> None:
+    """Test the /init_datasets endpoint with a missing API key."""
+    response = client.post("/init_datasets")
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.headers["content-type"] == "application/json"
+    assert response.json() == {"detail": "Not authenticated"}
+
+
+def test_init_datasets_invalid_key(client: TestClient) -> None:
+    """Test the /init_datasets endpoint with an invalid API key."""
+    response = client.post("/init_datasets", headers={"X-API-Key": "invalid"})
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.headers["content-type"] == "application/json"
+    assert response.json() == {"detail": "Invalid API Key"}
+
+
+def test_init_datasets_valid_key(client: TestClient, monkeypatch: MonkeyPatch) -> None:
     """Test the /init_datasets endpoint."""
     saved_datasets = [
         {"dataset": "saved.rdf", "dataset_url": "http://example.com/saved.rdf"}
@@ -28,8 +44,10 @@ def test_init_datasets(client: TestClient, monkeypatch: MonkeyPatch) -> None:
         "dds_glossary.controllers.GlossaryController.init_datasets",
         lambda *_, **__: (saved_datasets, failed_datasets),
     )
+    api_key = "valid"
+    monkeypatch.setenv("API_KEY", api_key)
 
-    response = client.post("/init_datasets")
+    response = client.post("/init_datasets", headers={"X-API-Key": api_key})
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
     assert response.json() == {
