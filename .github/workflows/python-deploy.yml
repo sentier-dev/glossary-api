@@ -37,7 +37,7 @@ jobs:
 
     - name: Copy files to server
       run: |
-        scp -r . ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/home/${{ secrets.SSH_USER }}/sites/
+        scp -r ${GITHUB_WORKSPACE} ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/home/${{ secrets.SSH_USER }}/sites/
 
     - name: Deploy to Server
       run: |
