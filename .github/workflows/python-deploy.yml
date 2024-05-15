@@ -42,6 +42,6 @@ jobs:
     - name: Deploy to Server
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-        cd /home/${{ secrets.SSH_USER }}/sites/
+        cd /home/${{ secrets.SSH_USER }}/sites/dds_glossary/
         docker compose -f compose.yaml restart postgres glossary_web
         EOF
