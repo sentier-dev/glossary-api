@@ -39,7 +39,7 @@ jobs:
       run: |
         rsync -vr --delete ${GITHUB_WORKSPACE} ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:/home/${{ secrets.SSH_USER }}/sites/
 
-    - name: Deploy to Server
+    - name: Restart services
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
         export POSTGRES_USER=${{ secrets.POSTGRES_USER }}
