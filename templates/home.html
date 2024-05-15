@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDS Glossary</title>
+</head>
+
+<body>
+    <header>
+        <h1>Welcome to Depart-de-Sentier Glossary</h1>
+    </header>
+    <div>
+        <aside>
+            <h2>Schemes</h2>
+            {% for scheme in schemes %}
+            <div>
+                <a href="/?concept_scheme_iri={{ scheme.iri }}">{{ scheme.prefLabel }}</a>
+            </div>
+            {% endfor %}
+        </aside>
+        <h2>Search for a term</h2>
+        <form action="/" method="GET">
+            <input type="text" name="search_term" placeholder="Search for a concept" value="{{ search_term }}">
+            <button type="submit">Search</button>
+        </form>
+        {% for concept in concepts %}
+        <h3>
+            <a href="/concept?concept_iri={{ concept.iri }}">prefLabel: {{ concept.prefLabel }}</a>
+        </h3>
+        <p>iri: {{ concept.iri }}</p>
+        <p>notation: {{ concept.notation }}</p>
+        <p>scopeNote: {{ concept.scopeNote }}</p>
+        {% endfor %}
+    </div>
+    <footer>
+        <p>© 2024 Depart-de-Sentier. All rights reserved.</p>
+    </footer>
+</body>
+
+</html>

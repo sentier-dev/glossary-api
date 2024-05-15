@@ -13,6 +13,7 @@ from dds_glossary.database import (
     get_relations,
     init_engine,
     save_dataset,
+    search_database,
 )
 from dds_glossary.model import (
     Concept,
@@ -203,3 +204,24 @@ def test_get_relations(engine: Engine) -> None:
     relations = get_relations(engine, concepts_dict[0]["iri"])
     assert len(relations) == len(relations_dict)
     assert relations[0].to_dict() == relations_dict[0]
+
+
+def test_search_database(engine: Engine) -> None:
+    """Test the search_database."""
+    concept_schemes_dict = add_concept_schemes(engine, 1)
+    scheme_iri = concept_schemes_dict[0]["iri"]
+    concepts_dict, _ = add_concepts(engine, [(0, scheme_iri), (1, scheme_iri)])
+
+    search_results = search_database(engine, "prefLabel0")
+    assert len(search_results) == 1
+    assert search_results[0].to_dict() == concepts_dict[0]
+
+
+def test_search_database_no_results(engine: Engine) -> None:
+    """Test the search_database when no results are found."""
+    concept_schemes_dict = add_concept_schemes(engine, 1)
+    scheme_iri = concept_schemes_dict[0]["iri"]
+    add_concepts(engine, [(0, scheme_iri), (1, scheme_iri)])
+
+    search_results = search_database(engine, "prefLabel2")
+    assert len(search_results) == 0

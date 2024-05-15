@@ -152,3 +152,30 @@ def get_relations(engine: Engine, concept_iri: str) -> list[SemanticRelation]:
             )
             .all()
         )
+
+
+def search_database(
+    engine: Engine,
+    search_term: str,
+    lang: str = "en",
+) -> list[Concept]:
+    """
+    Search the database for concepts with the search_term in the preferred or
+    alternative labels, in the specified language.
+
+    Args:
+        engine (Engine): The database engine.
+        search_term (str): The search term to match against.
+        lang (str, optional): The language of the labels. Defaults to "en".
+
+    Returns:
+        list[Concept]: The concepts that matches the search term.
+    """
+    with Session(engine) as session:
+        concepts = session.query(Concept).all()
+        return [
+            concept
+            for concept in concepts
+            if search_term in concept.get_in_language(concept.prefLabels, lang)
+            or search_term in concept.get_in_language(concept.altLabels, lang)
+        ]
