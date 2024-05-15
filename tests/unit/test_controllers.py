@@ -120,3 +120,14 @@ def test_get_concept_not_found(controller: GlossaryController) -> None:
         controller.get_concept(concept_iri)
     assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
     assert exc_info.value.detail == f"Concept {concept_iri} not found."
+
+
+def test_search_database(controller: GlossaryController) -> None:
+    """Test the GlossaryController search_database method."""
+    concept_schemes_dict = add_concept_schemes(controller.engine, 1)
+    scheme_iri = concept_schemes_dict[0]["iri"]
+    concepts_dict, _ = add_concepts(controller.engine, [(0, scheme_iri)])
+
+    search_results = controller.search_database("prefLabel0")
+    assert len(search_results) == 1
+    assert search_results[0] == concepts_dict[0]

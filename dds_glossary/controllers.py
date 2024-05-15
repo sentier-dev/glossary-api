@@ -17,6 +17,7 @@ from .database import (
     get_relations,
     init_engine,
     save_dataset,
+    search_database,
 )
 from .model import Concept, ConceptScheme, InScheme, SemanticRelation
 
@@ -202,3 +203,20 @@ class GlossaryController:
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"Concept {concept_iri} not found.",
         )
+
+    def search_database(self, search_term: str, lang: str = "en") -> list[dict]:
+        """
+        Search the database for concepts that match the `search_term` in the
+        selected `lang`.
+
+        Args:
+            search_term (str): The search term to match against.
+            lang (str): The language to use for matching. Defaults to "en".
+
+        Returns:
+            list[dict]: The result concepts as dictionaries.
+        """
+        return [
+            concept.to_dict(lang=lang)
+            for concept in search_database(self.engine, search_term, lang=lang)
+        ]

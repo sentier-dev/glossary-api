@@ -2,8 +2,10 @@
 
 from http import HTTPStatus
 
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
+from fastapi.templating import Jinja2Templates
+from starlette.templating import _TemplateResponse
 
 from . import __version__
 from .auth import get_api_key
@@ -11,6 +13,44 @@ from .controllers import GlossaryController
 
 app = FastAPI()
 controller = GlossaryController()
+templates = Jinja2Templates(directory="templates")
+
+
+@app.get("/")
+def home(
+    request: Request,
+    search_term: str = "",
+    concept_scheme_iri: str = "",
+    lang: str = "en",
+) -> _TemplateResponse:
+    """Get the home page.
+    If a `search_term` term is provided, it will filter the concepts by the search term.
+    If a `concept_scheme_iri` is provided, it will filter the concepts by the concept
+    scheme.
+
+    Args:
+        request (Request): The request.
+        search_term (str): The search term to filter the concepts. Defaults to "".
+        concept_scheme_iri (str): The concept scheme IRI to filter the concepts.
+            Defaults to "".
+        lang (str): The language to use for searching concepts. Defaults to "en".
+
+    Returns:
+        _TemplateResponse: The home page with search results if any.
+    """
+    if concept_scheme_iri:
+        concepts = controller.get_concepts(concept_scheme_iri, lang=lang)
+    else:
+        concepts = controller.search_database(search_term, lang=lang)
+
+    return templates.TemplateResponse(
+        "home.html",
+        {
+            "request": request,
+            "schemes": controller.get_concept_schemes(lang=lang),
+            "concepts": concepts,
+        },
+    )
 
 
 @app.get("/version")
@@ -36,6 +76,10 @@ def init_datasets(
 ) -> JSONResponse:
     """Initialize the datasets.
 
+    Args:
+        _api_key (dict): The API key.
+        reload (bool): Flag to reload the datasets. Defaults to False.
+
     Returns:
         JSONResponse: The status of the init request.
     """
@@ -55,6 +99,9 @@ def get_concept_schemes(lang: str = "en") -> JSONResponse:
     """
     Returns all the saved concept schemes.
 
+    Args:
+        lang (str): The language. Defaults to "en".
+
     Returns:
         JSONResponse: The concept schemes.
     """
@@ -72,6 +119,10 @@ def get_concepts(concept_scheme_iri: str, lang: str = "en") -> JSONResponse:
     """
     Returns all the saved concepts for a concept scheme.
 
+    Args:
+        concept_scheme_iri (str): The concept scheme IRI.
+        lang (str): The language. Defaults to "en".
+
     Returns:
         JSONResponse: The concepts.
     """
@@ -88,6 +139,10 @@ def get_concepts(concept_scheme_iri: str, lang: str = "en") -> JSONResponse:
 def get_concept(concept_iri: str, lang: str = "en") -> JSONResponse:
     """
     Returns a concept.
+
+    Args:
+        concept_iri (str): The concept IRI.
+        lang (str): The language. Defaults to "en".
 
     Returns:
         JSONResponse: The concept.
