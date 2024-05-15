@@ -1,0 +1,40 @@
+name: Python 🐍 Deploy 🚀
+
+on:
+  workflow_run:
+    workflows: ["python-test"]
+    types:
+    - completed
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash -l {0}
+
+jobs:
+  deploy:
+    name: Deoploy to server 🚀
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run &&
+      github.event.workflow_run.conclusion == 'success' &&
+      startsWith(github.ref, 'refs/tags/v') &&
+      contains(github.ref, 'main')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up SSH
+      uses: webfactory/ssh-agent@v0.5.3
+      with:
+        ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+    - name: Deploy to Server
+      run: |
+        ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+        cd /home/${{ secrets.SSH_USER }}/sites/
+        git pull
+        docker-compose down postgres glossary_web
+        docker-compose up -d postgres glossary_web
+        EOF
