@@ -16,10 +16,14 @@ jobs:
     name: Deoploy to server 🚀
     runs-on: ubuntu-latest
 
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+
+    - name: Setup SSH Known Hosts
+      run: |
+        echo "${{ secrets.SSH_KNOWN_HOSTS }}" >> ~/.ssh/known_hosts
+        chmod 644 ~/.ssh/known_hosts
 
     - name: Set up SSH
       uses: webfactory/ssh-agent@v0.5.3
