@@ -27,7 +27,7 @@ jobs:
 
     - name: Setup SSH Known Hosts
       run: |
-        ssh-keyscan -t rsa [server-ip-or-hostname] >> ~/.ssh/known_hosts
+        ssh-keyscan -t rsa ${{ secrets.SERVER_IP }} >> ~/.ssh/known_hosts
         chmod 644 ~/.ssh/known_hosts
 
     - name: Set up SSH Agent
