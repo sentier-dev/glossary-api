@@ -31,6 +31,6 @@ jobs:
         ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
         cd /home/${{ secrets.SSH_USER }}/sites/
         git pull
-        docker-compose down postgres glossary_web
-        docker-compose up -d postgres glossary_web
+        docker compose down postgres glossary_web
+        docker compose up -d postgres glossary_web
         EOF
