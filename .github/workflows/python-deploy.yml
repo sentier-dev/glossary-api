@@ -15,12 +15,6 @@ jobs:
   deploy:
     name: Deoploy to server 🚀
     runs-on: ubuntu-latest
-    env:
-      POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
-      POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
-      POSTGRES_PORT: ${{ secrets.POSTGRES_PORT }}
-      POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
-      API_KEY: ${{ secrets.API_KEY }}
 
     steps:
     - name: Checkout code
@@ -48,6 +42,11 @@ jobs:
     - name: Deploy to Server
       run: |
         ssh ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+        export POSTGRES_USER=${{ secrets.POSTGRES_USER }}
+        export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+        export POSTGRES_PORT=${{ secrets.POSTGRES_PORT }}
+        export POSTGRES_DB=${{ secrets.POSTGRES_DB }}
+        export API_KEY=${{ secrets.API_KEY }}
         cd /home/${{ secrets.SSH_USER }}/sites/dds_glossary/
         docker compose -f compose.yaml restart postgres glossary_web
         EOF
