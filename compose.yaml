@@ -4,7 +4,7 @@
 # For examples, see the Awesome Compose repository:
 # https://github.com/docker/awesome-compose
 services:
-  postgres:
+  glossary_postgres:
     image: postgres
     restart: always
     environment:
@@ -24,13 +24,13 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-        DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:${POSTGRES_PORT}/${POSTGRES_DB}
+        DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@glossary_postgres:${POSTGRES_PORT}/${POSTGRES_DB}
         API_KEY: ${API_KEY}
     ports:
       - "8000:8000"
     command: ["uvicorn", "dds_glossary.main:app", "--host", "0.0.0.0"]
     depends_on:
-      postgres:
+      glossary_postgres:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/version"]
