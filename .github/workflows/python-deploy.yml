@@ -48,5 +48,5 @@ jobs:
         export POSTGRES_DB=${{ secrets.POSTGRES_DB }}
         export API_KEY=${{ secrets.API_KEY }}
         cd /home/${{ secrets.SSH_USER }}/sites/dds_glossary/
-        docker compose -f compose.yaml restart postgres glossary_web
+        docker compose -f compose.yaml restart glossary_postgres glossary_web
         EOF
