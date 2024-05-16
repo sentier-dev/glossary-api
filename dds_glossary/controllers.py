@@ -61,6 +61,7 @@ class GlossaryController:
     ) -> None:
         self.engine = init_engine()
         self.data_dir = Path(data_dir_path)
+        self.data_dir.mkdir(parents=True, exist_ok=True)
         onto_path.append(str(self.data_dir))
 
     def parse_dataset(
