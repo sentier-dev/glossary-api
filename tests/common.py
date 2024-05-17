@@ -6,7 +6,6 @@ from sqlalchemy.orm import Session
 from dds_glossary.model import (
     Concept,
     ConceptScheme,
-    InScheme,
     SemanticRelation,
     SemanticRelationType,
 )
@@ -29,11 +28,9 @@ def add_concept_schemes(engine: Engine, num: int = 1) -> list[dict]:
         return [concept_scheme.to_dict() for concept_scheme in concept_schemes]
 
 
-def add_concepts(
-    engine: Engine, entries: list[tuple[int, str]]
-) -> tuple[list[dict], list[str]]:
+def add_concepts(engine: Engine, concept_scheme_iris: list[str]) -> list[dict]:
     """Add concepts to the database."""
-    with Session(engine) as session:
+    with Session(engine, autoflush=False) as session:
         concepts = [
             Concept(
                 iri=f"iri{i}",
@@ -42,35 +39,31 @@ def add_concepts(
                 prefLabels={"en": f"prefLabel{i}"},
                 altLabels={"en": f"altLabel{i}"},
                 scopeNotes={"en": f"scopeNote{i}"},
+                concept_schemes=[
+                    (
+                        session.query(ConceptScheme)
+                        .where(ConceptScheme.iri == concept_scheme_iris[i])
+                        .one()
+                    )
+                ],
             )
-            for i in range(len(entries))
-        ]
-        in_schemes = [
-            InScheme(
-                concept_iri=concepts[i].iri,
-                scheme_iri=entries[i][1],
-            )
-            for i in range(len(entries))
+            for i in range(len(concept_scheme_iris))
         ]
         session.add_all(concepts)
-        session.add_all(in_schemes)
         session.commit()
-        return (
-            [concept.to_dict() for concept in concepts],
-            [in_scheme.scheme_iri for in_scheme in in_schemes],
-        )
+        return [concept.to_dict() for concept in concepts]
 
 
-def add_relations(engine: Engine, entries: list[tuple[str, str]]) -> list[dict]:
+def add_relations(engine: Engine, concept_iris: list[tuple[str, str]]) -> list[dict]:
     """Add semantic relations to the database."""
     with Session(engine) as session:
         relations = [
             SemanticRelation(
                 type=SemanticRelationType.BROADER,
-                source_concept_iri=entry[0],
-                target_concept_iri=entry[1],
+                source_concept_iri=source_iri,
+                target_concept_iri=target_iri,
             )
-            for entry in entries
+            for source_iri, target_iri in concept_iris
         ]
         session.add_all(relations)
         session.commit()

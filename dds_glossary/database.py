@@ -4,10 +4,10 @@ from os import getenv
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
-from .model import Base, Concept, ConceptScheme, InScheme, SemanticRelation
+from .model import Base, Concept, ConceptScheme, SemanticRelation
 
 
 def init_engine(
@@ -51,7 +51,6 @@ def save_dataset(
     engine: Engine,
     concept_schemes: list[ConceptScheme],
     concepts: list[Concept],
-    in_schemes: list[InScheme],
     semantic_relations: list[SemanticRelation],
 ) -> None:
     """
@@ -66,7 +65,6 @@ def save_dataset(
     with Session(engine) as session:
         session.add_all(concept_schemes)
         session.add_all(concepts)
-        session.add_all(in_schemes)
         session.add_all(semantic_relations)
         session.commit()
 
@@ -75,6 +73,9 @@ def get_concept_schemes(engine: Engine) -> list[ConceptScheme]:
     """
     Get the concept schemes from the database.
 
+    Args:
+        engine (Engine): The database engine.
+
     Returns:
         list[ConceptScheme]: The concept schemes.
     """
@@ -82,23 +83,23 @@ def get_concept_schemes(engine: Engine) -> list[ConceptScheme]:
         return session.query(ConceptScheme).all()
 
 
-def get_concepts(engine: Engine, concept_scheme_iri: str) -> list[Concept]:
+def get_concept_scheme(engine: Engine, concept_scheme_iri: str) -> ConceptScheme | None:
     """
-    Get the concepts from the database.
+    Get the concept scheme from the database.
 
     Args:
         engine (Engine): The database engine.
         concept_scheme_iri (str): The concept scheme IRI.
 
     Returns:
-        list[Concept]: The concepts.
+        ConceptScheme | None: The concept scheme or None if not found.
     """
     with Session(engine) as session:
         return (
-            session.query(Concept)
-            .join(InScheme)
-            .where(InScheme.scheme_iri == concept_scheme_iri)
-            .all()
+            session.query(ConceptScheme)
+            .where(ConceptScheme.iri == concept_scheme_iri)
+            .options(joinedload(ConceptScheme.concepts))
+            .one_or_none()
         )
 
 
@@ -114,22 +115,12 @@ def get_concept(engine: Engine, concept_iri: str) -> Concept | None:
         Concept | None: The concept or None if not found.
     """
     with Session(engine) as session:
-        return session.query(Concept).where(Concept.iri == concept_iri).one_or_none()
-
-
-def get_in_schemes(engine: Engine, concept_iri: str) -> list[InScheme]:
-    """
-    Get the in schemes from the database.
-
-    Args:
-        engine (Engine): The database engine.
-        concept_iri (str): The concept IRI.
-
-    Returns:
-        list[InScheme]: The in schemes.
-    """
-    with Session(engine) as session:
-        return session.query(InScheme).where(InScheme.concept_iri == concept_iri).all()
+        return (
+            session.query(Concept)
+            .where(Concept.iri == concept_iri)
+            .options(joinedload(Concept.concept_schemes))
+            .one_or_none()
+        )
 
 
 def get_relations(engine: Engine, concept_iri: str) -> list[SemanticRelation]:

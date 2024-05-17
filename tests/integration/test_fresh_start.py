@@ -100,7 +100,7 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
     assert response.headers["content-type"] == "application/json"
     assert response.json() == {
         **concept_dict,
-        "inSchemes": [concept_scheme_iri],
+        "concept_schemes": [concept_scheme_iri],
         "relations": [
             {
                 "source_concept_iri": concept_dict["iri"],

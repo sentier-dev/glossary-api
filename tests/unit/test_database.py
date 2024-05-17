@@ -7,9 +7,8 @@ from sqlalchemy.orm import Session
 
 from dds_glossary.database import (
     get_concept,
+    get_concept_scheme,
     get_concept_schemes,
-    get_concepts,
-    get_in_schemes,
     get_relations,
     init_engine,
     save_dataset,
@@ -18,7 +17,6 @@ from dds_glossary.database import (
 from dds_glossary.model import (
     Concept,
     ConceptScheme,
-    InScheme,
     SemanticRelation,
     SemanticRelationType,
 )
@@ -84,7 +82,7 @@ def test_init_engine_database_exists_drop() -> None:
 
 def test_save_dataset_with_no_data(engine: Engine) -> None:
     """Test the save_dataset function with empty data."""
-    save_dataset(engine, [], [], [], [])
+    save_dataset(engine, [], [], [])
     with Session(engine) as session:
         assert session.query(ConceptScheme).count() == 0
         assert session.query(Concept).count() == 0
@@ -122,16 +120,6 @@ def test_save_dataset_with_data(engine: Engine) -> None:
             scopeNotes=["Concept2 Scope Note"],
         ),
     ]
-    in_schemes = [
-        InScheme(
-            concept_iri=concepts[0].iri,
-            scheme_iri=concept_schemes[0].iri,
-        ),
-        InScheme(
-            concept_iri=concepts[1].iri,
-            scheme_iri=concept_schemes[0].iri,
-        ),
-    ]
     semantic_relations = [
         SemanticRelation(
             type=SemanticRelationType.BROADER,
@@ -139,7 +127,7 @@ def test_save_dataset_with_data(engine: Engine) -> None:
             target_concept_iri=concepts[1].iri,
         )
     ]
-    save_dataset(engine, concept_schemes, concepts, in_schemes, semantic_relations)
+    save_dataset(engine, concept_schemes, concepts, semantic_relations)
 
     with Session(engine) as session:
         assert session.query(ConceptScheme).count() == 1
@@ -151,77 +139,64 @@ def test_save_dataset_with_data(engine: Engine) -> None:
         assert session.query(SemanticRelation).one().target_concept_iri == concept2_iri
 
 
-def test_get_concept_scheme(engine: Engine) -> None:
+def test_get_concept_schemes(engine: Engine) -> None:
     """Test the get_concept_schemes."""
-    concept_schemes_dicts = add_concept_schemes(engine, 1)
+    concept_scheme_dicts = add_concept_schemes(engine, 1)
 
     concept_schemes = get_concept_schemes(engine)
-    assert len(concept_schemes) == len(concept_schemes_dicts)
-    assert concept_schemes[0].to_dict() == concept_schemes_dicts[0]
+    assert len(concept_schemes) == len(concept_scheme_dicts)
+    assert concept_schemes[0].to_dict() == concept_scheme_dicts[0]
 
 
-def test_get_concepts(engine: Engine) -> None:
-    """Test the get_concepts."""
-    concept_schemes_dict = add_concept_schemes(engine, 1)
-    concepts_dict, _ = add_concepts(engine, [(0, concept_schemes_dict[0]["iri"])])
+def test_get_concept_scheme(engine: Engine) -> None:
+    """Test the get_concept_scheme."""
+    concept_scheme_dicts = add_concept_schemes(engine, 1)
 
-    concepts = get_concepts(engine, concept_schemes_dict[0]["iri"])
-    assert len(concepts) == len(concepts_dict)
-    assert concepts[0].to_dict() == concepts_dict[0]
+    concept_scheme = get_concept_scheme(engine, concept_scheme_dicts[0]["iri"])
+    assert concept_scheme is not None
+    assert concept_scheme.to_dict() == concept_scheme_dicts[0]
 
 
 def test_get_concept(engine: Engine) -> None:
     """Test the get_concept."""
-    concept_schemes_dict = add_concept_schemes(engine, 1)
-    concepts_dict, _ = add_concepts(engine, [(0, concept_schemes_dict[0]["iri"])])
+    concept_scheme_dicts = add_concept_schemes(engine, 1)
+    concept_dicts = add_concepts(engine, [concept_scheme_dicts[0]["iri"]])
 
-    concept = get_concept(engine, concepts_dict[0]["iri"])
+    concept = get_concept(engine, concept_dicts[0]["iri"])
     assert concept is not None
-    assert concept.to_dict() == concepts_dict[0]
-
-
-def test_get_in_schemes(engine: Engine) -> None:
-    """Test the get_in_schemes."""
-    concept_schemes_dict = add_concept_schemes(engine, 1)
-    concepts_dict, in_schemes_list = add_concepts(
-        engine, [(0, concept_schemes_dict[0]["iri"])]
-    )
-
-    in_schemes = get_in_schemes(engine, concepts_dict[0]["iri"])
-    assert len(in_schemes) == len(in_schemes_list)
-    assert [in_scheme.scheme_iri for in_scheme in in_schemes] == in_schemes_list
+    assert concept.to_dict() == concept_dicts[0]
 
 
 def test_get_relations(engine: Engine) -> None:
     """Test the get_relations."""
-    concept_schemes_dict = add_concept_schemes(engine, 1)
-    scheme_iri = concept_schemes_dict[0]["iri"]
-    concepts_dict, _ = add_concepts(engine, [(0, scheme_iri), (1, scheme_iri)])
-    relations_dict = add_relations(
-        engine, [(concepts_dict[0]["iri"], concepts_dict[1]["iri"])]
+    concept_scheme_dicts = add_concept_schemes(engine, 1)
+    scheme_iri = concept_scheme_dicts[0]["iri"]
+    concept_dicts = add_concepts(engine, [scheme_iri, scheme_iri])
+    relation_dicts = add_relations(
+        engine, [(concept_dicts[0]["iri"], concept_dicts[1]["iri"])]
     )
 
-    relations = get_relations(engine, concepts_dict[0]["iri"])
-    assert len(relations) == len(relations_dict)
-    assert relations[0].to_dict() == relations_dict[0]
+    relations = get_relations(engine, concept_dicts[0]["iri"])
+    assert len(relations) == len(relation_dicts)
+    assert relations[0].to_dict() == relation_dicts[0]
 
 
 def test_search_database(engine: Engine) -> None:
     """Test the search_database."""
-    concept_schemes_dict = add_concept_schemes(engine, 1)
-    scheme_iri = concept_schemes_dict[0]["iri"]
-    concepts_dict, _ = add_concepts(engine, [(0, scheme_iri), (1, scheme_iri)])
+    concept_scheme_dicts = add_concept_schemes(engine, 1)
+    scheme_iri = concept_scheme_dicts[0]["iri"]
+    concept_dicts = add_concepts(engine, [scheme_iri, scheme_iri])
 
-    search_results = search_database(engine, "prefLabel0")
+    search_results = search_database(engine, concept_dicts[0]["prefLabel"])
     assert len(search_results) == 1
-    assert search_results[0].to_dict() == concepts_dict[0]
+    assert search_results[0].to_dict() == concept_dicts[0]
 
 
 def test_search_database_no_results(engine: Engine) -> None:
     """Test the search_database when no results are found."""
-    concept_schemes_dict = add_concept_schemes(engine, 1)
-    scheme_iri = concept_schemes_dict[0]["iri"]
-    add_concepts(engine, [(0, scheme_iri), (1, scheme_iri)])
+    concept_scheme_dicts = add_concept_schemes(engine, 1)
+    scheme_iri = concept_scheme_dicts[0]["iri"]
+    add_concepts(engine, [scheme_iri, scheme_iri])
 
     search_results = search_database(engine, "prefLabel2")
     assert len(search_results) == 0

@@ -4,7 +4,6 @@ from dds_glossary.model import (
     Base,
     Concept,
     ConceptScheme,
-    InScheme,
     SemanticRelation,
     SemanticRelationType,
 )
@@ -138,20 +137,6 @@ def test_concept_to_dict(concept: Concept) -> None:
         "prefLabel": "0203 21 -- Trupy a polovičky trupov",
         "altLabel": "-- Trupy a polovičky trupov",
         "scopeNote": "Frozen carcases and half-carcases of swine",
-    }
-
-
-def test_in_scheme_from_xml_element(in_scheme: InScheme) -> None:
-    """It should return an InScheme instance from an XML element."""
-    assert in_scheme.concept_iri == "http://data.europa.eu/xsp/cn2024/020321000080"
-    assert in_scheme.scheme_iri == "http://data.europa.eu/xsp/cn2024/cn2024"
-
-
-def test_in_scheme_to_dict(in_scheme: InScheme) -> None:
-    """It should return a dictionary representation of the InScheme instance."""
-    assert in_scheme.to_dict() == {
-        "concept_iri": "http://data.europa.eu/xsp/cn2024/020321000080",
-        "scheme_iri": "http://data.europa.eu/xsp/cn2024/cn2024",
     }
 
 

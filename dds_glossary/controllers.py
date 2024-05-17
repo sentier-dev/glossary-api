@@ -11,15 +11,14 @@ from owlready2 import get_ontology, onto_path
 
 from .database import (
     get_concept,
+    get_concept_scheme,
     get_concept_schemes,
-    get_concepts,
-    get_in_schemes,
     get_relations,
     init_engine,
     save_dataset,
     search_database,
 )
-from .model import Concept, ConceptScheme, InScheme, SemanticRelation
+from .model import Concept, ConceptScheme, SemanticRelation
 
 
 class GlossaryController:
@@ -67,9 +66,7 @@ class GlossaryController:
     def parse_dataset(
         self,
         dataset_path: Path,
-    ) -> tuple[
-        list[ConceptScheme], list[Concept], list[InScheme], list[SemanticRelation]
-    ]:
+    ) -> tuple[list[ConceptScheme], list[Concept], list[SemanticRelation]]:
         """
         Parse a dataset.
 
@@ -88,18 +85,15 @@ class GlossaryController:
             for concept_scheme_element in concept_scheme_elements
         ]
         concepts = [
-            Concept.from_xml_element(concept_element)
+            Concept.from_xml_element(concept_element, concept_schemes)
             for concept_element in concept_elements
         ]
-        in_schemes: list[InScheme] = []
-        for concept_element in concept_elements:
-            in_schemes.extend(InScheme.from_xml_element(concept_element))
         semantic_relations: list[SemanticRelation] = []
         for concept_element in concept_elements:
             semantic_relations.extend(
                 SemanticRelation.from_xml_element(concept_element)
             )
-        return concept_schemes, concepts, in_schemes, semantic_relations
+        return concept_schemes, concepts, semantic_relations
 
     def init_datasets(
         self,
@@ -165,12 +159,18 @@ class GlossaryController:
             lang (str): The language. Defaults to "en".
 
         Returns:
-            list[dict]: The concepts.
+            list[dict]: The concepts as dictionaries.
+
+        Raises:
+            HTTPException: If the concept scheme is not found.
         """
-        return [
-            concept.to_dict(lang=lang)
-            for concept in get_concepts(self.engine, concept_scheme_iri)
-        ]
+        concept_scheme = get_concept_scheme(self.engine, concept_scheme_iri)
+        if concept_scheme:
+            return [concept.to_dict(lang=lang) for concept in concept_scheme.concepts]
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Concept scheme {concept_scheme_iri} not found.",
+        )
 
     def get_concept(self, concept_iri: str, lang: str = "en") -> dict:
         """
@@ -184,17 +184,14 @@ class GlossaryController:
             dict: The concept.
 
         Raises:
-            NoResultFound: If the concept is not found.
+            HTTPException: If the concept is not found.
         """
-        concept_dict = get_concept(self.engine, concept_iri)
+        concept = get_concept(self.engine, concept_iri)
 
-        if concept_dict:
+        if concept:
             return {
-                **concept_dict.to_dict(lang=lang),
-                "inSchemes": [
-                    in_scheme.scheme_iri
-                    for in_scheme in get_in_schemes(self.engine, concept_iri)
-                ],
+                **concept.to_dict(lang=lang),
+                "concept_schemes": [scheme.iri for scheme in concept.concept_schemes],
                 "relations": [
                     relation.to_dict()
                     for relation in get_relations(self.engine, concept_iri)
