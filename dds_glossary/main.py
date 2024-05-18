@@ -1,15 +1,31 @@
 """Main entry for the dds_glossary server."""
+from os import getenv
 
 from http import HTTPStatus
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.templating import Jinja2Templates
+import sentry_sdk
 from starlette.templating import _TemplateResponse
 
 from . import __version__
 from .auth import get_api_key
 from .controllers import GlossaryController
+
+
+SENTRY_DSN=getenv("SENTRY_DSN")
+
+sentry_sdk.init(
+    dsn=SENTRY_DSN,
+    # Set traces_sample_rate to 1.0 to capture 100%
+    # of transactions for performance monitoring.
+    traces_sample_rate=1.0,
+    # Set profiles_sample_rate to 1.0 to profile 100%
+    # of sampled transactions.
+    # We recommend adjusting this value in production.
+    profiles_sample_rate=1.0,
+)
 
 app = FastAPI()
 controller = GlossaryController()
