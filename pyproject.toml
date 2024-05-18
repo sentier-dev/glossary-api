@@ -5,10 +5,10 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "dds_glossary"
 authors = [
-  { name="Mina Sami", email="sami.mg@outlook.com" }
+  { name="Départ de Sentier", email="engineering@d-d-s.ch" }
 ]
 maintainers = [
-  { name="Mina Sami", email="sami.mg@outlook.com" }
+  { name="Départ de Sentier", email="engineering@d-d-s.ch" }
 ]
 description = "Sustainability assessment classifications glossary."
 readme = "README.md"
