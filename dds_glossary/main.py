@@ -68,6 +68,30 @@ def home(
         },
     )
 
+@app.get("/search")
+def search(
+    search_term: str ,
+    lang: str = "en",
+) -> JSONResponse:
+    """Search concepts according to given expression.
+    Note: This will be removed once #35 (Add elasticsearch) is closed.
+
+    Args:
+        search_term (str): The search term to filter the concepts.
+        lang (str): The language to use for searching concepts. Defaults to "en".
+
+    Returns:
+        JSONResponse: The search results, if any.
+    """
+    return JSONResponse(
+        content={
+            "schemes": controller.get_concept_schemes(lang=lang),
+            "concepts": controller.search_database(search_term, lang=lang),
+        },
+        media_type="application/json",
+        status_code=HTTPStatus.OK,
+    )
+
 
 @app.get("/version")
 def get_version() -> JSONResponse:
