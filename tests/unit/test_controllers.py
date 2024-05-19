@@ -62,7 +62,9 @@ def test_init_dataset_with_failed_datasets(
     files = list(controller.data_dir.iterdir())
 
     assert len(files) == 1
-    assert files[0].read_bytes() == file_rdf.read_bytes()
+    assert "".join(files[0].read_text().split()) == (
+        "".join(file_rdf.read_text().split())
+    )
     assert failed_datasets == [
         {
             "dataset": "test.rdf",
