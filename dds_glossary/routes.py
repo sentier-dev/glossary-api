@@ -6,8 +6,15 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.templating import _TemplateResponse
 
-from . import __version__
 from .auth import get_api_key
+from .schema import (
+    CollectionResponse,
+    ConceptResponse,
+    ConceptSchemeResponse,
+    FullConeptResponse,
+    InitDatasetsResponse,
+    VersionResponse,
+)
 
 router = APIRouter()
 
@@ -62,7 +69,7 @@ def search(
     request: Request,
     search_term: str,
     lang: str = "en",
-) -> JSONResponse:
+) -> list[ConceptResponse]:
     """Search concepts according to given expression.
     Note: This will be removed once #35 (Add elasticsearch) is closed.
 
@@ -71,34 +78,19 @@ def search(
         lang (str): The language to use for searching concepts. Defaults to "en".
 
     Returns:
-        JSONResponse: The search results, if any.
+        list[ConceptResponse]: The search results, if any.
     """
-    return JSONResponse(
-        content={
-            "schemes": request.app.state.controller.get_concept_schemes(lang=lang),
-            "concepts": request.app.state.controller.search_database(
-                search_term, lang=lang
-            ),
-        },
-        media_type="application/json",
-        status_code=HTTPStatus.OK,
-    )
+    return request.app.state.controller.search_database(search_term, lang=lang)
 
 
 @router.get("/version")
-def get_version() -> JSONResponse:
+def get_version() -> VersionResponse:
     """Get the version of the server.
 
     Returns:
-        JSONResponse: The version of the server.
+        VersionResponse: The version of the server.
     """
-    return JSONResponse(
-        content={
-            "version": __version__,
-        },
-        media_type="application/json",
-        status_code=HTTPStatus.OK,
-    )
+    return VersionResponse()
 
 
 @router.post("/init_datasets")
@@ -106,7 +98,7 @@ def init_datasets(
     request: Request,
     _api_key: dict = Depends(get_api_key),
     reload: bool = False,
-) -> JSONResponse:
+) -> InitDatasetsResponse:
     """Initialize the datasets.
 
     Args:
@@ -114,23 +106,15 @@ def init_datasets(
         reload (bool): Flag to reload the datasets. Defaults to False.
 
     Returns:
-        JSONResponse: The status of the init request.
+        InitDatasetsResponse: The response.
     """
-    saved_datasets, failed_datasets = request.app.state.controller.init_datasets(
-        reload=reload
-    )
-    return JSONResponse(
-        content={
-            "saved_datasets": saved_datasets,
-            "failed_datasets": failed_datasets,
-        },
-        media_type="application/json",
-        status_code=HTTPStatus.OK,
-    )
+    return request.app.state.controller.init_datasets(reload=reload)
 
 
 @router.get("/schemes")
-def get_concept_schemes(request: Request, lang: str = "en") -> JSONResponse:
+def get_concept_schemes(
+    request: Request, lang: str = "en"
+) -> list[ConceptSchemeResponse]:
     """
     Returns all the saved concept schemes.
 
@@ -138,17 +122,9 @@ def get_concept_schemes(request: Request, lang: str = "en") -> JSONResponse:
         lang (str): The language. Defaults to "en".
 
     Returns:
-        JSONResponse: The concept schemes.
+        list[ConceptSchemeResponse]: The concept schemes.
     """
-    return JSONResponse(
-        content={
-            "concept_schemes": request.app.state.controller.get_concept_schemes(
-                lang=lang
-            ),
-        },
-        media_type="application/json",
-        status_code=HTTPStatus.OK,
-    )
+    return request.app.state.controller.get_concept_schemes(lang=lang)
 
 
 @router.get("/concepts")
@@ -181,7 +157,7 @@ def get_collection(
     request: Request,
     collection_iri: str,
     lang: str = "en",
-) -> JSONResponse:
+) -> CollectionResponse:
     """
     Returns a collection.
     Args:
@@ -190,15 +166,13 @@ def get_collection(
     Returns:
         JSONResponse: The collection.
     """
-    return JSONResponse(
-        content=request.app.state.controller.get_collection(collection_iri, lang=lang),
-        media_type="application/json",
-        status_code=HTTPStatus.OK,
-    )
+    return request.app.state.controller.get_collection(collection_iri, lang=lang)
 
 
 @router.get("/concept")
-def get_concept(request: Request, concept_iri: str, lang: str = "en") -> JSONResponse:
+def get_concept(
+    request: Request, concept_iri: str, lang: str = "en"
+) -> FullConeptResponse:
     """
     Returns a concept.
 
@@ -207,10 +181,6 @@ def get_concept(request: Request, concept_iri: str, lang: str = "en") -> JSONRes
         lang (str): The language. Defaults to "en".
 
     Returns:
-        JSONResponse: The concept.
+        FullConeptResponse: The concept with concept scheme and relations.
     """
-    return JSONResponse(
-        content=request.app.state.controller.get_concept(concept_iri, lang=lang),
-        media_type="application/json",
-        status_code=HTTPStatus.OK,
-    )
+    return request.app.state.controller.get_concept(concept_iri, lang=lang)

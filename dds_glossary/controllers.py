@@ -19,7 +19,23 @@ from .database import (
     save_dataset,
     search_database,
 )
-from .model import Collection, Concept, ConceptScheme, SemanticRelation
+from .model import (
+    Collection,
+    Concept,
+    ConceptScheme,
+    Dataset,
+    FailedDataset,
+    SemanticRelation,
+)
+from .schema import (
+    CollectionResponse,
+    ConceptResponse,
+    ConceptSchemeResponse,
+    EntityResponse,
+    FullConeptResponse,
+    InitDatasetsResponse,
+    RelationResponse,
+)
 
 
 class GlossaryController:
@@ -35,25 +51,35 @@ class GlossaryController:
     fao_url: ClassVar[str] = (
         "https://storage.googleapis.com/fao-datalab-caliper/Downloads/"
     )
-    datasets: ClassVar[dict[str, str]] = {
-        "ESTAT-CN2024.rdf": (
-            europa_url
-            + "combined-nomenclature-2024/20240425-0/rdf/skos_core/ESTAT-CN2024.rdf"
+    datasets: ClassVar[list[Dataset]] = [
+        Dataset(
+            name="ESTAT-CN2024.rdf",
+            url=(
+                europa_url
+                + "combined-nomenclature-2024/20240425-0/rdf/skos_core/ESTAT-CN2024.rdf"
+            ),
         ),
-        "ESTAT-LoW2015.rdf": (
-            europa_url + "low2015/20240425-0/rdf/skos_core/ESTAT-LoW2015.rdf"
+        Dataset(
+            name="ESTAT-LoW2015.rdf",
+            url=europa_url + "low2015/20240425-0/rdf/skos_core/ESTAT-LoW2015.rdf",
         ),
-        "ESTAT-NACE2.1.rdf": (
-            europa_url + "nace2.1/20240425-0/rdf/skos_core/ESTAT-NACE2.1.rdf"
+        Dataset(
+            name="ESTAT-NACE2.1.rdf",
+            url=(europa_url + "nace2.1/20240425-0/rdf/skos_core/ESTAT-NACE2.1.rdf"),
         ),
-        "ESTAT-ICST-COM.rdf": (
-            europa_url + "icst-com/20240425-0/rdf/skos_core/ESTAT-ICST-COM.rdf"
+        Dataset(
+            name="ESTAT-ICST-COM.rdf",
+            url=(europa_url + "icst-com/20240425-0/rdf/skos_core/ESTAT-ICST-COM.rdf"),
         ),
-        "ESTAT-PRODCOM2023.rdf": (
-            europa_url + "prodcom2023/20240425-0/rdf/skos_core/ESTAT-PRODCOM2023.rdf"
+        Dataset(
+            name="ESTAT-PRODCOM2023.rdf",
+            url=(
+                europa_url
+                + "prodcom2023/20240425-0/rdf/skos_core/ESTAT-PRODCOM2023.rdf"
+            ),
         ),
-        "ISIC4.rdf": fao_url + "ISICRev4/ISIC4.rdf",
-    }
+        Dataset(name="ISIC4.rdf", url=fao_url + "ISICRev4/ISIC4.rdf"),
+    ]
 
     def __init__(
         self,
@@ -110,7 +136,7 @@ class GlossaryController:
     def init_datasets(
         self,
         reload: bool = False,
-    ) -> tuple[list[dict[str, str]], list[dict[str, str]]]:
+    ) -> InitDatasetsResponse:
         """
         Download and save the datasets, if they do not exist or if the reload flag is
         set.
@@ -119,35 +145,37 @@ class GlossaryController:
             reload (bool): Flag to reload the datasets. Defaults to False.
 
         Returns:
-            tuple[list[dict[str, str]], list[dict[str, str]]]: The saved datasets and
-                the failed datasets.
+            InitDatasetsResponse: The response with the saved and failed datasets.
         """
-        saved_datasets: list[dict[str, str]] = []
-        failed_datasets: list[dict[str, str]] = []
+        saved_datasets: list[Dataset] = []
+        failed_datasets: list[FailedDataset] = []
         self.engine = init_engine(drop_database_flag=True)
-        for dataset_file, dataset_url in self.datasets.items():
-            dataset_path = self.data_dir / dataset_file
+        for dataset in self.datasets:
+            dataset_path = self.data_dir / dataset.name
             try:
-                ontology = get_ontology(dataset_url).load(reload=reload)
+                ontology = get_ontology(dataset.url).load(reload=reload)
                 ontology.save(file=str(dataset_path), format="rdfxml")
                 save_dataset(self.engine, *self.parse_dataset(dataset_path))
                 saved_datasets.append(
-                    {
-                        "dataset": dataset_file,
-                        "dataset_url": dataset_url,
-                    }
+                    Dataset(
+                        name=dataset.name,
+                        url=dataset.url,
+                    )
                 )
             except Exception as error:  # pylint: disable=broad-except
                 failed_datasets.append(
-                    {
-                        "dataset": dataset_file,
-                        "dataset_url": dataset_url,
-                        "error": str(error),
-                    }
+                    FailedDataset(
+                        name=dataset.name,
+                        url=dataset.url,
+                        error=str(error),
+                    )
                 )
-        return saved_datasets, failed_datasets
+        return InitDatasetsResponse(
+            saved_datasets=saved_datasets,
+            failed_datasets=failed_datasets,
+        )
 
-    def get_concept_schemes(self, lang: str = "en") -> list[dict]:
+    def get_concept_schemes(self, lang: str = "en") -> list[ConceptSchemeResponse]:
         """
         Get the concept schemes.
 
@@ -155,10 +183,10 @@ class GlossaryController:
             lang (str): The language. Defaults to "en".
 
         Returns:
-            list[dict]: The concept schemes.
+            list[ConceptSchemeResponse]: The concept schemes.
         """
         return [
-            concept_scheme.to_dict(lang=lang)
+            ConceptSchemeResponse(**concept_scheme.to_dict(lang=lang))
             for concept_scheme in get_concept_schemes(self.engine)
         ]
 
@@ -185,7 +213,9 @@ class GlossaryController:
             detail=f"Concept scheme {concept_scheme_iri} not found.",
         )
 
-    def get_collection(self, collection_iri: str, lang: str = "en") -> dict:
+    def get_collection(
+        self, collection_iri: str, lang: str = "en"
+    ) -> CollectionResponse:
         """
         Get the collection.
 
@@ -194,7 +224,7 @@ class GlossaryController:
             lang (str): The language. Defaults to "en".
 
         Returns:
-            dict: The collection.
+            CollectionResponse: The collection with its members.
 
         Raises:
             HTTPException: If the collection is not found.
@@ -202,16 +232,19 @@ class GlossaryController:
         collection = get_collection(self.engine, collection_iri)
 
         if collection:
-            return {
+            return CollectionResponse(
                 **collection.to_dict(lang=lang),
-                "members": [member.to_dict(lang=lang) for member in collection.members],
-            }
+                members=[
+                    EntityResponse(**member.to_dict(lang=lang))
+                    for member in collection.members
+                ],
+            )
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"Collection {collection_iri} not found.",
         )
 
-    def get_concept(self, concept_iri: str, lang: str = "en") -> dict:
+    def get_concept(self, concept_iri: str, lang: str = "en") -> FullConeptResponse:
         """
         Get the concept and al its relations.
 
@@ -220,7 +253,7 @@ class GlossaryController:
             lang (str): The language. Defaults to "en".
 
         Returns:
-            dict: The concept.
+            FullConeptResponse: The concept with its concept schemes and relations.
 
         Raises:
             HTTPException: If the concept is not found.
@@ -228,20 +261,22 @@ class GlossaryController:
         concept = get_concept(self.engine, concept_iri)
 
         if concept:
-            return {
+            return FullConeptResponse(
                 **concept.to_dict(lang=lang),
-                "concept_schemes": [scheme.iri for scheme in concept.concept_schemes],
-                "relations": [
-                    relation.to_dict()
+                concept_schemes=[scheme.iri for scheme in concept.concept_schemes],
+                relations=[
+                    RelationResponse(**relation.to_dict())
                     for relation in get_relations(self.engine, concept_iri)
                 ],
-            }
+            )
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"Concept {concept_iri} not found.",
         )
 
-    def search_database(self, search_term: str, lang: str = "en") -> list[dict]:
+    def search_database(
+        self, search_term: str, lang: str = "en"
+    ) -> list[ConceptResponse]:
         """
         Search the database for concepts that match the `search_term` in the
         selected `lang`.
@@ -251,9 +286,9 @@ class GlossaryController:
             lang (str): The language to use for matching. Defaults to "en".
 
         Returns:
-            list[dict]: The result concepts as dictionaries.
+            list[ConceptResponse]: The result concepts matching the `search_term`.
         """
         return [
-            concept.to_dict(lang=lang)
+            ConceptResponse(**concept.to_dict(lang=lang))
             for concept in search_database(self.engine, search_term, lang=lang)
         ]

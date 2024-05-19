@@ -4,9 +4,34 @@ from abc import abstractmethod
 from enum import Enum
 from typing import ClassVar
 
+from pydantic import BaseModel
 from sqlalchemy import Column, ForeignKey, String, Table
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+
+
+class Dataset(BaseModel):
+    """
+    Base class for the datasets.
+
+    Attributes:
+        name (str): The name of the dataset.
+        url (str): The URL of the dataset.
+    """
+
+    name: str
+    url: str
+
+
+class FailedDataset(Dataset):
+    """
+    Class for the failed datasets.
+
+    Attributes:
+        error (str): The error message for the failed dataset.
+    """
+
+    error: str
 
 
 class MemberType(Enum):

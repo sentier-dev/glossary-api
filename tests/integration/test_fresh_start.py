@@ -10,64 +10,60 @@ from owlready2 import onto_path
 
 from dds_glossary import __version__
 from dds_glossary.controllers import GlossaryController
+from dds_glossary.schema import (
+    CollectionResponse,
+    ConceptSchemeResponse,
+    Dataset,
+    EntityResponse,
+    FailedDataset,
+    InitDatasetsResponse,
+    VersionResponse,
+)
 
 
 def test_fresh_start(client: TestClient, dir_data: Path) -> None:
     """Test the /fresh_start endpoint."""
     client.app.state.controller.data_dir = dir_data  # type: ignore
     onto_path.append(str(dir_data))
-    saved_dataset_file = "sample.rdf"
-    saved_database_url = "https://example.com/sample.rdf"
-    failed_dataset_file = "failed_dataset.rdf"
-    failed_database_url = ""
-    GlossaryController.datasets = {
-        saved_dataset_file: saved_database_url,
-        failed_dataset_file: failed_database_url,
-    }
+    saved_dataset = Dataset(name="sample.rdf", url="https://example.com/sample.rdf")
+    failed_dataset = FailedDataset(
+        name="failed_dataset.rdf",
+        url="",
+        error="[Errno 2] No such file or directory: ''",
+    )
+    GlossaryController.datasets = [saved_dataset, failed_dataset]
 
     response = client.get("/version")
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
-    assert response.json() == {"version": __version__}
+    assert response.json() == VersionResponse(version=__version__).model_dump()
 
     api_key = os_getenv("API_KEY", "")
     headers: Mapping[str, str] = {"X-API-Key": api_key}
     response = client.post("/init_datasets", headers=headers)
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
-    assert response.json() == {
-        "saved_datasets": [
-            {
-                "dataset": saved_dataset_file,
-                "dataset_url": saved_database_url,
-            }
-        ],
-        "failed_datasets": [
-            {
-                "dataset": failed_dataset_file,
-                "dataset_url": failed_database_url,
-                "error": ("[Errno 2] No such file or directory: ''"),
-            }
-        ],
-    }
+    assert (
+        response.json()
+        == InitDatasetsResponse(
+            saved_datasets=[saved_dataset],
+            failed_datasets=[failed_dataset],
+        ).model_dump()
+    )
 
     response = client.get("/schemes?lang=sk")
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
-    assert response.json() == {
-        "concept_schemes": [
-            {
-                "iri": "http://data.europa.eu/xsp/cn2024/cn2024",
-                "notation": "CN 2024",
-                "scopeNote": (
-                    "http://publications.europa.eu/resource/oj/JOC_2019_119_R_0001"
-                ),
-                "prefLabel": "Kombinovaná Nomenklatúra, 2024 (KN 2024)",
-            }
-        ]
-    }
-    scheme_iris = [scheme["iri"] for scheme in response.json()["concept_schemes"]]
+    assert response.json() == [
+        ConceptSchemeResponse(
+            iri="http://data.europa.eu/xsp/cn2024/cn2024",
+            notation="CN 2024",
+            scopeNote=("http://publications.europa.eu/resource/oj/JOC_2019_119_R_0001"),
+            prefLabel="Kombinovaná Nomenklatúra, 2024 (KN 2024)",
+        ).model_dump()
+    ]
 
+    scheme_iris = [scheme["iri"] for scheme in response.json()]
     member_dicts = [
         {
             "iri": "http://data.europa.eu/xsp/cn2024/020321000080",
@@ -121,12 +117,15 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
     response = client.get(f"/collection?collection_iri={collection_iri}&lang=sk")
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
-    assert response.json() == {
-        "iri": collection_iri,
-        "notation": "Collection1Notation",
-        "prefLabel": "Collection1PrefLabel",
-        "members": [
-            member_dicts[0],
-            member_dicts[3],
-        ],
-    }
+    assert (
+        response.json()
+        == CollectionResponse(
+            iri=collection_iri,
+            notation="Collection1Notation",
+            prefLabel="Collection1PrefLabel",
+            members=[
+                EntityResponse(**member_dicts[0]),
+                EntityResponse(**member_dicts[3]),
+            ],
+        ).model_dump()
+    )
