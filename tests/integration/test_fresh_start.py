@@ -67,45 +67,67 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
             }
         ]
     }
+    scheme_iris = [scheme["iri"] for scheme in response.json()["concept_schemes"]]
 
-    concept_scheme_iri = response.json()["concept_schemes"][0]["iri"]
-    response = client.get(f"/concepts?concept_scheme_iri={concept_scheme_iri}&lang=sk")
+    member_dicts = [
+        {
+            "iri": "http://data.europa.eu/xsp/cn2024/020321000080",
+            "identifier": "020321000080",
+            "notation": "0203 21",
+            "prefLabel": "0203 21 -- Trupy a polovičky trupov",
+            "altLabel": "-- Trupy a polovičky trupov",
+            "scopeNote": "Frozen carcases and half-carcases of swine",
+        },
+        {
+            "iri": "http://data.europa.eu/xsp/cn2024/020321000010",
+            "identifier": "020321000010",
+            "notation": "",
+            "prefLabel": "- Mrazené",
+            "altLabel": "- Frozen",
+            "scopeNote": "",
+        },
+        {
+            "iri": "https://example.org/collection1",
+            "notation": "Collection1Notation",
+            "prefLabel": "Collection1PrefLabel",
+        },
+        {
+            "iri": "https://example.org/collection2",
+            "notation": "Collection2Notation",
+            "prefLabel": "Collection2PrefLabel",
+        },
+    ]
+    response = client.get(f"/concepts?concept_scheme_iri={scheme_iris[0]}&lang=sk")
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
-    assert response.json() == {
-        "concepts": [
-            {
-                "iri": "http://data.europa.eu/xsp/cn2024/020321000080",
-                "identifier": "020321000080",
-                "notation": "0203 21",
-                "prefLabel": "0203 21 -- Trupy a polovičky trupov",
-                "altLabel": "-- Trupy a polovičky trupov",
-                "scopeNote": "Frozen carcases and half-carcases of swine",
-            },
-            {
-                "iri": "http://data.europa.eu/xsp/cn2024/020321000010",
-                "identifier": "020321000010",
-                "notation": "",
-                "prefLabel": "- Mrazené",
-                "altLabel": "- Frozen",
-                "scopeNote": "",
-            },
-        ]
-    }
+    assert response.json() == {"concepts": member_dicts}
 
-    concept_dict = response.json()["concepts"][0]
     related_concept_dict = response.json()["concepts"][1]
-    response = client.get(f"/concept?concept_iri={concept_dict['iri']}&lang=sk")
+    response = client.get(f"/concept?concept_iri={member_dicts[0]['iri']}&lang=sk")
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
     assert response.json() == {
-        **concept_dict,
-        "concept_schemes": [concept_scheme_iri],
+        **member_dicts[0],
+        "concept_schemes": [scheme_iris[0]],
         "relations": [
             {
-                "source_concept_iri": concept_dict["iri"],
+                "source_concept_iri": member_dicts[0]["iri"],
                 "target_concept_iri": related_concept_dict["iri"],
                 "type": "broader",
             }
+        ],
+    }
+
+    collection_iri = "https://example.org/collection1"
+    response = client.get(f"/collection?collection_iri={collection_iri}&lang=sk")
+    assert response.status_code == HTTPStatus.OK
+    assert response.headers["content-type"] == "application/json"
+    assert response.json() == {
+        "iri": collection_iri,
+        "notation": "Collection1Notation",
+        "prefLabel": "Collection1PrefLabel",
+        "members": [
+            member_dicts[0],
+            member_dicts[3],
         ],
     }

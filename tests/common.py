@@ -4,8 +4,10 @@ from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
 from dds_glossary.model import (
+    Collection,
     Concept,
     ConceptScheme,
+    Member,
     SemanticRelation,
     SemanticRelationType,
 )
@@ -16,7 +18,7 @@ def add_concept_schemes(engine: Engine, num: int = 1) -> list[dict]:
     with Session(engine) as session:
         concept_schemes = [
             ConceptScheme(
-                iri=f"iri{i}",
+                iri=f"scheme_iri{i}",
                 notation=f"notation{i}",
                 scopeNote=f"scopeNote{i}",
                 prefLabels={"en": f"prefLabel{i}"},
@@ -33,7 +35,7 @@ def add_concepts(engine: Engine, concept_scheme_iris: list[str]) -> list[dict]:
     with Session(engine, autoflush=False) as session:
         concepts = [
             Concept(
-                iri=f"iri{i}",
+                iri=f"concept_iri{i}",
                 identifier=f"identifier{i}",
                 notation=f"notation{i}",
                 prefLabels={"en": f"prefLabel{i}"},
@@ -52,6 +54,25 @@ def add_concepts(engine: Engine, concept_scheme_iris: list[str]) -> list[dict]:
         session.add_all(concepts)
         session.commit()
         return [concept.to_dict() for concept in concepts]
+
+
+def add_collections(engine: Engine, member_iri_lists: list[list[str]]) -> list[dict]:
+    """Add collections to the database."""
+    with Session(engine) as session:
+        collections = [
+            Collection(
+                iri=f"collection_iri{i}",
+                notation=f"notation{i}",
+                prefLabels={"en": f"prefLabel{i}"},
+                member_iris=member_iri_lists[i],
+            )
+            for i in range(len(member_iri_lists))
+        ]
+        session.add_all(collections)
+        for collection in collections:
+            collection.resolve_members_from_xml(session.query(Member).all())
+        session.commit()
+        return [collection.to_dict() for collection in collections]
 
 
 def add_relations(engine: Engine, concept_iris: list[tuple[str, str]]) -> list[dict]:

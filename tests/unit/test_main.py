@@ -75,6 +75,15 @@ def test_get_concepts(client: TestClient) -> None:
     assert response.headers["content-type"] == "application/json"
 
 
+def test_get_collection(client: TestClient) -> None:
+    """Test the /collection endpoint."""
+    collection_iri = "iri"
+    response = client.get(f"/collection?collection_iri={collection_iri}")
+    assert response.json() == {"detail": f"Collection {collection_iri} not found."}
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.headers["content-type"] == "application/json"
+
+
 def test_get_concept(client: TestClient) -> None:
     """Test the /concept endpoint."""
     concept_iri = "iri"

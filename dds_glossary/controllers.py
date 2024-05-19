@@ -10,6 +10,7 @@ from fastapi import HTTPException
 from owlready2 import get_ontology, onto_path
 
 from .database import (
+    get_collection,
     get_concept,
     get_concept_scheme,
     get_concept_schemes,
@@ -18,7 +19,7 @@ from .database import (
     save_dataset,
     search_database,
 )
-from .model import Concept, ConceptScheme, SemanticRelation
+from .model import Collection, Concept, ConceptScheme, SemanticRelation
 
 
 class GlossaryController:
@@ -66,7 +67,12 @@ class GlossaryController:
     def parse_dataset(
         self,
         dataset_path: Path,
-    ) -> tuple[list[ConceptScheme], list[Concept], list[SemanticRelation]]:
+    ) -> tuple[
+        list[ConceptScheme],
+        list[Concept],
+        list[Collection],
+        list[SemanticRelation],
+    ]:
         """
         Parse a dataset.
 
@@ -74,11 +80,13 @@ class GlossaryController:
             dataset_path (Path): The dataset path.
 
         Returns:
-            tuple[list[ConceptScheme], list[Concept], list[SemanticRelation]]: The
-                concept schemes, concepts, and semantic relations.
+            tuple[list[ConceptScheme], list[Concept], list[Collection],
+                list[SemanticRelation]]: The concept schemes, concepts, collections,
+                and semantic relations.
         """
         root = parse_xml(dataset_path).getroot()
         concept_scheme_elements = root.findall("core:ConceptScheme", root.nsmap)
+        collection_elements = root.findall("core:Collection", root.nsmap)
         concept_elements = root.findall("core:Concept", root.nsmap)
         concept_schemes = [
             ConceptScheme.from_xml_element(concept_scheme_element)
@@ -88,12 +96,16 @@ class GlossaryController:
             Concept.from_xml_element(concept_element, concept_schemes)
             for concept_element in concept_elements
         ]
+        collections = [
+            Collection.from_xml_element(collection_element, concept_schemes)
+            for collection_element in collection_elements
+        ]
         semantic_relations: list[SemanticRelation] = []
         for concept_element in concept_elements:
             semantic_relations.extend(
                 SemanticRelation.from_xml_element(concept_element)
             )
-        return concept_schemes, concepts, semantic_relations
+        return concept_schemes, concepts, collections, semantic_relations
 
     def init_datasets(
         self,
@@ -165,11 +177,38 @@ class GlossaryController:
             HTTPException: If the concept scheme is not found.
         """
         concept_scheme = get_concept_scheme(self.engine, concept_scheme_iri)
+
         if concept_scheme:
-            return [concept.to_dict(lang=lang) for concept in concept_scheme.concepts]
+            return [concept.to_dict(lang=lang) for concept in concept_scheme.members]
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail=f"Concept scheme {concept_scheme_iri} not found.",
+        )
+
+    def get_collection(self, collection_iri: str, lang: str = "en") -> dict:
+        """
+        Get the collection.
+
+        Args:
+            collection_iri (str): The collection IRI.
+            lang (str): The language. Defaults to "en".
+
+        Returns:
+            dict: The collection.
+
+        Raises:
+            HTTPException: If the collection is not found.
+        """
+        collection = get_collection(self.engine, collection_iri)
+
+        if collection:
+            return {
+                **collection.to_dict(lang=lang),
+                "members": [member.to_dict(lang=lang) for member in collection.members],
+            }
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail=f"Collection {collection_iri} not found.",
         )
 
     def get_concept(self, concept_iri: str, lang: str = "en") -> dict:

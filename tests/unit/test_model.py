@@ -2,6 +2,7 @@
 
 from dds_glossary.model import (
     Base,
+    Collection,
     Concept,
     ConceptScheme,
     SemanticRelation,
@@ -101,6 +102,33 @@ def test_concept_scheme_to_dict(concept_scheme: ConceptScheme) -> None:
         "scopeNote": "http://publications.europa.eu/resource/oj/JOC_2019_119_R_0001",
         "prefLabel": "Kombinovaná Nomenklatúra, 2024 (KN 2024)",
     }
+
+
+def test_collection_from_xml_element(collection: Collection) -> None:
+    """It should return a Collection instance from an XML element."""
+    assert collection.iri == "https://example.org/collection1"
+    assert collection.notation == "Collection1Notation"
+    assert collection.prefLabels == {
+        "en": "Collection1PrefLabel",
+    }
+
+
+def test_collection_resolve_members_from_xml(
+    collection: Collection,
+    concept: Concept,
+) -> None:
+    """It should resolve the members of the collection from the XML file."""
+    nested_collection = Collection(
+        iri="https://example.org/collection2",
+        notation="Collection2Notation",
+        prefLabels={
+            "en": "Collection2PrefLabel",
+        },
+    )
+    collection.resolve_members_from_xml([concept, nested_collection])
+    assert len(collection.members) == 2
+    assert collection.members[0].to_dict() == concept.to_dict()
+    assert collection.members[1].to_dict() == nested_collection.to_dict()
 
 
 def test_concept_from_xml_element(concept: Concept) -> None:

@@ -4,10 +4,10 @@ from os import getenv
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, with_polymorphic
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
-from .model import Base, Concept, ConceptScheme, SemanticRelation
+from .model import Base, Collection, Concept, ConceptScheme, Member, SemanticRelation
 
 
 def init_engine(
@@ -51,6 +51,7 @@ def save_dataset(
     engine: Engine,
     concept_schemes: list[ConceptScheme],
     concepts: list[Concept],
+    collections: list[Collection],
     semantic_relations: list[SemanticRelation],
 ) -> None:
     """
@@ -60,12 +61,20 @@ def save_dataset(
         engine (Engine): The database engine.
         concept_schemes (list[ConceptScheme]): The concept schemes.
         concepts (list[Concept]): The concepts.
+        collections (list[Collection]): The collections.
         semantic_relations (list[SemanticRelation]): The semantic relations.
     """
     with Session(engine) as session:
         session.add_all(concept_schemes)
         session.add_all(concepts)
+        session.add_all(collections)
         session.add_all(semantic_relations)
+
+        members: list[Member] = []
+        members.extend(concepts)
+        members.extend(collections)
+        for collection in collections:
+            collection.resolve_members_from_xml(members)
         session.commit()
 
 
@@ -95,10 +104,40 @@ def get_concept_scheme(engine: Engine, concept_scheme_iri: str) -> ConceptScheme
         ConceptScheme | None: The concept scheme or None if not found.
     """
     with Session(engine) as session:
+        member_polymorphic = with_polymorphic(
+            Member,
+            [Concept, Collection],
+            aliased=True,
+        )
         return (
             session.query(ConceptScheme)
             .where(ConceptScheme.iri == concept_scheme_iri)
-            .options(joinedload(ConceptScheme.concepts))
+            .options(joinedload(ConceptScheme.members.of_type(member_polymorphic)))
+            .one_or_none()
+        )
+
+
+def get_collection(engine: Engine, collection_iri: str) -> Collection | None:
+    """
+    Get the collection from the database.
+
+    Args:
+        engine (Engine): The database engine.
+        collection_iri (str): The collection IRI.
+
+    Returns:
+        Collection | None: The collection or None if not found.
+    """
+    with Session(engine) as session:
+        member_polymorphic = with_polymorphic(
+            Member,
+            [Concept, Collection],
+            aliased=True,
+        )
+        return (
+            session.query(Collection)
+            .where(Collection.iri == collection_iri)
+            .options(joinedload(Collection.members.of_type(member_polymorphic)))
             .one_or_none()
         )
 

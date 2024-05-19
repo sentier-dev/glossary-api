@@ -9,8 +9,23 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
+class MemberType(Enum):
+    """
+    Enum class for the types of collection members.
+
+    Attributes:
+        CONCEPT (str): The concept type.
+        COLLECTION (str): The collection type.
+    """
+
+    COLLECTION_MEMBER: str = "collection_member"
+    CONCEPT: str = "concept"
+    COLLECTION: str = "collection"
+
+
 class SemanticRelationType(Enum):
-    """Enum class for the types of semantic relations.
+    """
+    Enum class for the types of semantic relations.
 
     Attributes:
         BROADER (str): The broader semantic relation.
@@ -101,7 +116,7 @@ class ConceptScheme(Base):
             is a dictionary where the key is the language code and the value is the
             label in that language. To get the preferred label in a specific language,
             use the `get_in_language` method.
-        concepts (list[Concept]): The concepts of the concept scheme.
+        members (list[Member]): The members of the concept scheme.
     """
 
     __tablename__ = "concept_schemes"
@@ -111,8 +126,8 @@ class ConceptScheme(Base):
     scopeNote: Mapped[str] = mapped_column()
     prefLabels: Mapped[dict[str, str]] = mapped_column()
 
-    concepts: Mapped[list["Concept"]] = relationship(
-        "Concept",
+    members: Mapped[list["Member"]] = relationship(
+        "Member",
         secondary="in_scheme",
         back_populates="concept_schemes",
     )
@@ -156,7 +171,164 @@ class ConceptScheme(Base):
         }
 
 
-class Concept(Base):
+class Member(Base):
+    """
+    Base classe for the collection members.
+
+    Attributes:
+        iri (str): The Internationalized Resource Identifier of the collection member.
+        notation (str): The notation of the collection member.
+        prefLabels (dict[str, str]): The preferred labels of the collection member. This
+            is a dictionary where the key is the language code and the value is the
+            label in that language. To get the preferred label in a specific language,
+            use the `get_in_language` method.
+        member_type (MemberType): The type of the collection member.
+        concept_schemes (list[ConceptScheme]): The concept schemes to which the member
+            belongs.
+        collections (list[Collection]): The collections to which the member belongs.
+    """
+
+    __tablename__ = "collection_members"
+
+    iri: Mapped[str] = mapped_column(primary_key=True)
+    notation: Mapped[str] = mapped_column()
+    prefLabels: Mapped[dict[str, str]] = mapped_column()
+    member_type: Mapped[MemberType] = mapped_column()
+
+    __mapper_args__ = {
+        "polymorphic_identity": MemberType.COLLECTION_MEMBER,
+        "polymorphic_on": "member_type",
+    }
+
+    concept_schemes: Mapped[list[ConceptScheme]] = relationship(
+        "ConceptScheme",
+        secondary="in_scheme",
+        back_populates="members",
+    )
+    collections: Mapped[list["Collection"]] = relationship(
+        "Collection",
+        secondary="in_collection",
+        back_populates="members",
+    )
+
+    @classmethod
+    def get_concept_schemes(
+        cls,
+        element,
+        concept_schemes: list[ConceptScheme],
+    ) -> list[ConceptScheme]:
+        """
+        Get the concept schemes to which the member belongs.
+
+        Args:
+            element (ElementBase): The XML element to parse.
+            concept_schemes (list[ConceptScheme]): The concept schemes to which the
+                member belongs.
+
+        Returns:
+            list[ConceptScheme]: The concept schemes to which the member belongs.
+        """
+        scheme_iris = [
+            scheme_element.get(f"{{{element.nsmap['rdf']}}}resource")
+            for scheme_element in element.findall(
+                "core:inScheme", namespaces=element.nsmap
+            )
+        ]
+        return [
+            concept_scheme
+            for concept_scheme in concept_schemes
+            if concept_scheme.iri in scheme_iris
+        ]
+
+    def to_dict(self, lang: str = "en") -> dict:
+        """
+        Return the Member instance as a dictionary.
+
+        Args:
+            lang (str): The language code of the prefLabel.
+
+        Returns:
+            dict: The Member instance as a dictionary.
+        """
+        return {
+            "iri": self.iri,
+            "notation": self.notation,
+            "prefLabel": self.get_in_language(self.prefLabels, lang),
+        }
+
+
+class Collection(Member):
+    """
+    SKOS concept collections are labeled and/or ordered groups of SKOS concepts.
+
+    Collections are useful where a group of concepts shares something in common, and it
+    is convenient to group them under a common label, or where some concepts can be
+    placed in a meaningful order.
+
+    For more information, check: https://www.w3.org/TR/skos-reference/#collections.
+
+    Attributes:
+        iri (str): The Internationalized Resource Identifier of the collection.
+    """
+
+    __tablename__ = "collections"
+
+    iri: Mapped[str] = mapped_column(ForeignKey(Member.iri), primary_key=True)
+    member_iris: list[str] = []
+
+    members: Mapped[list[Member]] = relationship(
+        "Member",
+        secondary="in_collection",
+        back_populates="collections",
+    )
+
+    __mapper_args__ = {
+        "polymorphic_identity": MemberType.COLLECTION,
+    }
+
+    @classmethod
+    def from_xml_element(
+        cls,
+        element,
+        concept_schemes: list[ConceptScheme],
+    ) -> "Collection":
+        """
+        Return a Collection instance from an XML element.
+
+        Args:
+            element (ElementBase): The XML element to parse.
+
+        Returns:
+            Collection: The parsed Collection instance.
+        """
+        return Collection(
+            iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
+            notation=cls.get_sub_element_text(element, "core:notation"),
+            prefLabels={
+                label.get(f"{cls.xml_namespace}lang"): label.text
+                for label in element.findall("core:prefLabel", namespaces=element.nsmap)
+            },
+            concept_schemes=cls.get_concept_schemes(element, concept_schemes),
+            member_iris=[
+                member.get(f"{{{element.nsmap['rdf']}}}resource")
+                for member in element.findall("core:member", namespaces=element.nsmap)
+            ],
+        )
+
+    def resolve_members_from_xml(self, members: list[Member]) -> None:
+        """
+        Resolve the collections members from an xml element.
+
+        Args:
+            members (list[Member]): The list of all available members.
+
+        Returns:
+            None
+        """
+        self.members = [member for member in members if member.iri in self.member_iris]
+
+
+class Concept(Member):
     """
     A SKOS concept can be viewed as an idea or notion; a unit of thought. However, what
     constitutes a unit of thought is subjective, and this definition is meant to be
@@ -175,11 +347,6 @@ class Concept(Base):
     Attributes:
         iri (str): The Internationalized Resource Identifier of the concept.
         identifier (str): The identifier of the concept.
-        notation (str): The notation of the concept.
-        prefLabels (dict[str, str]): The preferred labels of the concept. This is a
-            dictionary where the key is the language code and the value is the label in
-            that language. To get the preferred label in a specific language, use the
-            `get_in_language` method.
         altLabels (dict[str, str]): The alternative labels of the concept. This is a
             dictionary where the key is the language code and the value is the label in
             that language. To get the alternative label in a specific language, use the
@@ -188,28 +355,24 @@ class Concept(Base):
             This is a dictionary where the key is the language code and the value is the
             note in that language. To get the scope note in a specific language, use the
             `get_in_language` method.
-        concept_schemes (list[ConceptScheme]): The concept schemes to which the concept
-            belongs.
     """
 
     __tablename__ = "concepts"
 
-    iri: Mapped[str] = mapped_column(primary_key=True)
+    iri: Mapped[str] = mapped_column(ForeignKey(Member.iri), primary_key=True)
     identifier: Mapped[str] = mapped_column()
-    notation: Mapped[str] = mapped_column()
-    prefLabels: Mapped[dict[str, str]] = mapped_column()
     altLabels: Mapped[dict[str, str]] = mapped_column()
     scopeNotes: Mapped[dict[str, str]] = mapped_column()
 
-    concept_schemes: Mapped[list[ConceptScheme]] = relationship(
-        "ConceptScheme",
-        secondary="in_scheme",
-        back_populates="concepts",
-    )
+    __mapper_args__ = {
+        "polymorphic_identity": MemberType.CONCEPT,
+    }
 
     @classmethod
     def from_xml_element(
-        cls, element, concept_schemes: list[ConceptScheme]
+        cls,
+        element,
+        concept_schemes: list[ConceptScheme],
     ) -> "Concept":
         """
         Return a Concept instance from an XML element.
@@ -222,13 +385,6 @@ class Concept(Base):
         Returns:
             Concept: The parsed Concept instance.
         """
-        scheme_iris = [
-            scheme_element.get(f"{{{element.nsmap['rdf']}}}resource")
-            for scheme_element in element.findall(
-                "core:inScheme", namespaces=element.nsmap
-            )
-        ]
-
         return Concept(
             iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
             identifier=cls.get_sub_element_text(element, "x_1.1:identifier"),
@@ -245,11 +401,7 @@ class Concept(Base):
                 note.get(f"{cls.xml_namespace}lang"): note.text
                 for note in element.findall("core:scopeNote", namespaces=element.nsmap)
             },
-            concept_schemes=[
-                concept_scheme
-                for concept_scheme in concept_schemes
-                if concept_scheme.iri in scheme_iris
-            ],
+            concept_schemes=cls.get_concept_schemes(element, concept_schemes),
         )
 
     def to_dict(self, lang: str = "en") -> dict:
@@ -331,11 +483,11 @@ class SemanticRelation(Base):
     type: Mapped[SemanticRelationType] = mapped_column()
 
     source_concept_iri: Mapped[str] = mapped_column(
-        ForeignKey("concepts.iri"),
+        ForeignKey(Concept.iri),
         primary_key=True,
     )
     target_concept_iri: Mapped[str] = mapped_column(
-        ForeignKey("concepts.iri"),
+        ForeignKey(Concept.iri),
         primary_key=True,
     )
     source_concept: Mapped["Concept"] = relationship(foreign_keys=[source_concept_iri])
@@ -381,6 +533,14 @@ class SemanticRelation(Base):
 in_scheme = Table(
     "in_scheme",
     Base.metadata,
-    Column("scheme_iri", String, ForeignKey("concept_schemes.iri"), primary_key=True),
-    Column("concept_iri", String, ForeignKey("concepts.iri"), primary_key=True),
+    Column("scheme_iri", String, ForeignKey(ConceptScheme.iri), primary_key=True),
+    Column("member_iri", String, ForeignKey(Member.iri), primary_key=True),
+)
+
+
+in_collection = Table(
+    "in_collection",
+    Base.metadata,
+    Column("collection_iri", String, ForeignKey(Collection.iri), primary_key=True),
+    Column("member_iri", String, ForeignKey(Member.iri), primary_key=True),
 )

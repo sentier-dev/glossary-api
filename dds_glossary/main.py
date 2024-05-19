@@ -135,6 +135,25 @@ def get_concepts(concept_scheme_iri: str, lang: str = "en") -> JSONResponse:
     )
 
 
+@app.get("/collection")
+def get_collection(collection_iri: str, lang: str = "en") -> JSONResponse:
+    """
+    Returns a collection.
+
+    Args:
+        collection_iri (str): The collection IRI.
+        lang (str): The language. Defaults to "en".
+
+    Returns:
+        JSONResponse: The collection.
+    """
+    return JSONResponse(
+        content=controller.get_collection(collection_iri, lang=lang),
+        media_type="application/json",
+        status_code=HTTPStatus.OK,
+    )
+
+
 @app.get("/concept")
 def get_concept(concept_iri: str, lang: str = "en") -> JSONResponse:
     """

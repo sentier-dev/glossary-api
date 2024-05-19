@@ -51,5 +51,19 @@
   <core:altLabel xml:lang="es">- Congelada</core:altLabel>
 </core:Concept>
 
+<core:Collection rdf:about="https://example.org/collection1">
+  <core:inScheme rdf:resource="http://data.europa.eu/xsp/cn2024/cn2024"/>
+  <core:member rdf:resource="http://data.europa.eu/xsp/cn2024/020321000080"/>
+  <core:member rdf:resource="https://example.org/collection2"/>
+  <core:prefLabel xml:lang="en">Collection1PrefLabel</core:prefLabel>
+  <core:notation rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Collection1Notation</core:notation>
+</core:Collection>
+
+<core:Collection rdf:about="https://example.org/collection2">
+  <core:inScheme rdf:resource="http://data.europa.eu/xsp/cn2024/cn2024"/>
+  <core:prefLabel xml:lang="en">Collection2PrefLabel</core:prefLabel>
+  <core:notation rdf:datatype="http://www.w3.org/2001/XMLSchema#string">Collection2Notation</core:notation>
+</core:Collection>
+
 
 </rdf:RDF>
