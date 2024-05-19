@@ -28,7 +28,7 @@ services:
         API_KEY: ${API_KEY}
     ports:
       - "8000:8000"
-    command: ["uvicorn", "dds_glossary.main:app", "--host", "0.0.0.0"]
+    command: ["python", "-m", "dds_glossary.main"]
     depends_on:
       glossary_postgres:
         condition: service_healthy

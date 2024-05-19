@@ -11,8 +11,7 @@ from sqlalchemy_utils import database_exists, drop_database
 
 from dds_glossary.controllers import GlossaryController
 from dds_glossary.database import init_engine
-from dds_glossary.main import app
-from dds_glossary.main import controller as app_controller
+from dds_glossary.main import create_app
 from dds_glossary.model import Concept, ConceptScheme, InScheme, SemanticRelation
 
 
@@ -89,8 +88,9 @@ def _controller(tmp_path: Path) -> Generator[GlossaryController, None, None]:
 
 @fixture(name="client")
 def _client(tmp_path: Path) -> Generator[TestClient, None, None]:
-    app_controller.data_dir = tmp_path
-    app_controller.engine = init_engine(drop_database_flag=True)
+    app = create_app()
+    app.state.controller.data_dir = tmp_path
+    app.state.controller.engine = init_engine(drop_database_flag=True)
     with TestClient(app) as client:
         yield client
-    _clean_database(app_controller.engine)
+    _clean_database(app.state.controller.engine)
