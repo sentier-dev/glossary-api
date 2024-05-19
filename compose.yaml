@@ -26,6 +26,7 @@ services:
     environment:
         DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@glossary_postgres:${POSTGRES_PORT}/${POSTGRES_DB}
         API_KEY: ${API_KEY}
+        SENTRY_DSN: ${SENTRY_DSN}
         HOST_IP: "0.0.0.0"
     ports:
       - "8000:8000"
