@@ -10,12 +10,11 @@ from owlready2 import onto_path
 
 from dds_glossary import __version__
 from dds_glossary.controllers import GlossaryController
-from dds_glossary.main import controller
 
 
 def test_fresh_start(client: TestClient, dir_data: Path) -> None:
     """Test the /fresh_start endpoint."""
-    controller.data_dir = dir_data
+    client.app.state.controller.data_dir = dir_data  # type: ignore
     onto_path.append(str(dir_data))
     saved_dataset_file = "sample.rdf"
     saved_database_url = "https://example.com/sample.rdf"

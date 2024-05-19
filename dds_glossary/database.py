@@ -1,6 +1,6 @@
 """Database classes for the dds_glossary package."""
 
-from os import getenv
+from os import getenv as os_getenv
 
 from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
@@ -32,7 +32,7 @@ def init_engine(
             the `database_url` argument is None.
     """
     if database_url is None:
-        database_url = getenv("DATABASE_URL")
+        database_url = os_getenv("DATABASE_URL")
     if not database_url:
         raise ValueError("DATABASE_URL environment variable is not set.")
     engine = create_engine(database_url)
