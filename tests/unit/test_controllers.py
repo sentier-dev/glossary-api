@@ -61,10 +61,18 @@ def test_init_dataset_with_failed_datasets(
     saved_datasets, failed_datasets = controller.init_datasets()
     files = list(controller.data_dir.iterdir())
 
-    assert len(files) == 1
-    assert "".join(files[0].read_text().split()) == (
-        "".join(file_rdf.read_text().split())
+    e_schemes, e_concepts, e_collections, e_relations = controller.parse_dataset(
+        file_rdf
     )
+    a_schemes, a_concepts, a_collections, a_relations = controller.parse_dataset(
+        files[0]
+    )
+
+    assert len(files) == 1
+    assert e_schemes == a_schemes
+    assert e_concepts == a_concepts
+    assert e_collections == a_collections
+    assert e_relations == a_relations
     assert failed_datasets == [
         {
             "dataset": "test.rdf",
