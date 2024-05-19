@@ -3,7 +3,7 @@
 from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, RedirectResponse
 from starlette.templating import _TemplateResponse
 
 from . import __version__
@@ -49,6 +49,12 @@ def home(
             "concepts": concepts,
         },
     )
+
+
+@router.get("/status")
+def status() -> RedirectResponse:
+    """Redirect to the status page."""
+    return RedirectResponse(url="https://sentier.instatus.com/")
 
 
 @router.get("/search")
