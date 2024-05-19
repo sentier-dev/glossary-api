@@ -13,15 +13,8 @@ defaults:
 
 jobs:
   deploy:
-    name: Deoploy to server 🚀
+    name: Deploy to server 🚀
     runs-on: ubuntu-latest
-      if >
-        github.event_name == 'workflow_dispatch' ||
-        (
-          github.event.workflow_run.conclusion == 'success' &&
-          github.ref == 'refs/heads/main' &&
-          startsWith(github.head_ref, 'v')
-        )
 
     steps:
     - name: Checkout code
