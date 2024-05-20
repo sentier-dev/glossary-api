@@ -8,8 +8,8 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.templating import Jinja2Templates
 
-from .controllers import GlossaryController
 from .routes import router
+from .services import GlossaryController
 
 
 def create_app() -> FastAPI:

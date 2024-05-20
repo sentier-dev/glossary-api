@@ -1,4 +1,4 @@
-"""Controller classes for the dds_glossary package."""
+"""Services classes and utils for the dds_glossary package."""
 
 from http import HTTPStatus
 from pathlib import Path

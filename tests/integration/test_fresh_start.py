@@ -9,7 +9,6 @@ from fastapi.testclient import TestClient
 from owlready2 import onto_path
 
 from dds_glossary import __version__
-from dds_glossary.controllers import GlossaryController
 from dds_glossary.schema import (
     CollectionResponse,
     ConceptSchemeResponse,
@@ -19,6 +18,7 @@ from dds_glossary.schema import (
     InitDatasetsResponse,
     VersionResponse,
 )
+from dds_glossary.services import GlossaryController
 
 
 def test_fresh_start(client: TestClient, dir_data: Path) -> None:

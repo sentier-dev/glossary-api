@@ -45,7 +45,7 @@ def test_init_datasets_valid_key(client: TestClient, monkeypatch: MonkeyPatch) -
         )
     ]
     monkeypatch.setattr(
-        "dds_glossary.controllers.GlossaryController.init_datasets",
+        "dds_glossary.services.GlossaryController.init_datasets",
         lambda *_, **__: InitDatasetsResponse(
             saved_datasets=saved_datasets,
             failed_datasets=failed_datasets,
