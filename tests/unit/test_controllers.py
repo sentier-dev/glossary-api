@@ -8,6 +8,8 @@ from pytest import MonkeyPatch
 from pytest import raises as pytest_raises
 
 from dds_glossary.controllers import GlossaryController
+from dds_glossary.model import Dataset, FailedDataset
+from dds_glossary.schema import FullConeptResponse, RelationResponse
 
 from ..common import add_collections, add_concept_schemes, add_concepts, add_relations
 
@@ -53,12 +55,12 @@ def test_init_dataset_with_failed_datasets(
 ) -> None:
     """Test the GlossaryController init_datasets method with an exception."""
     _init_datasets(monkeypatch)
-    GlossaryController.datasets = {
-        "sample.rdf": str(file_rdf),
-        "test.rdf": "test.rdf",
-    }
+    GlossaryController.datasets = [
+        Dataset(name="sample.rdf", url=str(file_rdf)),
+        Dataset(name="test.rdf", url="test.rdf"),
+    ]
 
-    saved_datasets, failed_datasets = controller.init_datasets()
+    response = controller.init_datasets()
     files = list(controller.data_dir.iterdir())
 
     e_schemes, e_concepts, e_collections, e_relations = controller.parse_dataset(
@@ -73,14 +75,14 @@ def test_init_dataset_with_failed_datasets(
     assert e_concepts == a_concepts
     assert e_collections == a_collections
     assert e_relations == a_relations
-    assert failed_datasets == [
-        {
-            "dataset": "test.rdf",
-            "dataset_url": "test.rdf",
-            "error": "[Errno 2] No such file or directory: 'test.rdf'",
-        }
+    assert response.failed_datasets == [
+        FailedDataset(
+            name="test.rdf",
+            url="test.rdf",
+            error="[Errno 2] No such file or directory: 'test.rdf'",
+        )
     ]
-    assert saved_datasets == [{"dataset": "sample.rdf", "dataset_url": str(file_rdf)}]
+    assert response.saved_datasets == [Dataset(name="sample.rdf", url=str(file_rdf))]
 
 
 def test_get_concept_schemes(controller: GlossaryController) -> None:
@@ -89,7 +91,7 @@ def test_get_concept_schemes(controller: GlossaryController) -> None:
 
     concept_schemes = controller.get_concept_schemes()
     assert len(concept_schemes) == len(concept_scheme_dicts)
-    assert concept_schemes == concept_scheme_dicts
+    assert concept_schemes[0].model_dump() == concept_scheme_dicts[0]
 
 
 def test_get_concepts(controller: GlossaryController) -> None:
@@ -126,10 +128,17 @@ def test_get_collection(controller: GlossaryController) -> None:
         ["collection_iri0"],
     ]
     collection_dicts = add_collections(controller.engine, member_iri_lists)
-    collection_dicts[0]["members"] = [concept_dicts[0], concept_dicts[1]]
+    collection_dicts[0]["members"] = [
+        {
+            "iri": concept_dicts[i]["iri"],
+            "notation": concept_dicts[i]["notation"],
+            "prefLabel": concept_dicts[i]["prefLabel"],
+        }
+        for i in range(2)
+    ]
 
     collection = controller.get_collection(collection_dicts[0]["iri"])
-    assert collection == collection_dicts[0]
+    assert collection.model_dump() == collection_dicts[0]
 
 
 def test_get_collection_not_found(controller: GlossaryController) -> None:
@@ -151,11 +160,14 @@ def test_get_concept(controller: GlossaryController) -> None:
     relation_dicts = add_relations(
         controller.engine, [(concept_dicts[0]["iri"], concept_dicts[1]["iri"])]
     )
-    concept_dicts[0]["concept_schemes"] = [concept_scheme_dicts[0]["iri"]]
-    concept_dicts[0]["relations"] = [relation_dicts[0]]
+    expected_concept = FullConeptResponse(
+        **concept_dicts[0],
+        concept_schemes=[concept_scheme_dicts[0]["iri"]],
+        relations=[RelationResponse(**relation_dicts[0])],
+    )
 
     concept = controller.get_concept(concept_dicts[0]["iri"])
-    assert concept == concept_dicts[0]
+    assert concept == expected_concept
 
 
 def test_get_concept_not_found(controller: GlossaryController) -> None:
@@ -175,4 +187,4 @@ def test_search_database(controller: GlossaryController) -> None:
 
     search_results = controller.search_database(concept_dicts[0]["prefLabel"])
     assert len(search_results) == 1
-    assert search_results[0] == concept_dicts[0]
+    assert search_results[0].model_dump() == concept_dicts[0]
