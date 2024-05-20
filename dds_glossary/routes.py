@@ -4,6 +4,7 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi_versioning import version
 from starlette.templating import Jinja2Templates, _TemplateResponse
 
 from .auth import get_api_key
@@ -17,10 +18,11 @@ from .schema import (
 )
 from .services import GlossaryController, get_controller, get_templates
 
-router = APIRouter()
+router_versioned = APIRouter()
+router_non_versioned = APIRouter()
 
 
-@router.get("/")
+@router_non_versioned.get("/")
 def home(
     request: Request,
     controller: GlossaryController = Depends(get_controller),
@@ -61,13 +63,15 @@ def home(
     )
 
 
-@router.get("/status")
+@router_versioned.get("/status")
+@version(0, 1)
 def status() -> RedirectResponse:
     """Redirect to the status page."""
     return RedirectResponse(url="https://sentier.instatus.com/")
 
 
-@router.get("/search")
+@router_versioned.get("/search")
+@version(0, 1)
 def search(
     search_term: str,
     controller: GlossaryController = Depends(get_controller),
@@ -87,7 +91,8 @@ def search(
     return controller.search_database(search_term, lang=lang)
 
 
-@router.get("/version")
+@router_versioned.get("/version")
+@version(0, 1)
 def get_version() -> VersionResponse:
     """Get the version of the server.
 
@@ -97,7 +102,8 @@ def get_version() -> VersionResponse:
     return VersionResponse()
 
 
-@router.post("/init_datasets")
+@router_versioned.post("/init_datasets")
+@version(0, 1)
 def init_datasets(
     controller: GlossaryController = Depends(get_controller),
     _api_key: dict = Depends(get_api_key),
@@ -116,7 +122,8 @@ def init_datasets(
     return controller.init_datasets(reload=reload)
 
 
-@router.get("/schemes")
+@router_versioned.get("/schemes")
+@version(0, 1)
 def get_concept_schemes(
     controller: GlossaryController = Depends(get_controller),
     lang: str = "en",
@@ -134,7 +141,8 @@ def get_concept_schemes(
     return controller.get_concept_schemes(lang=lang)
 
 
-@router.get("/concepts")
+@router_versioned.get("/concepts")
+@version(0, 1)
 def get_concepts(
     concept_scheme_iri: str,
     controller: GlossaryController = Depends(get_controller),
@@ -158,7 +166,8 @@ def get_concepts(
     )
 
 
-@router.get("/collection")
+@router_versioned.get("/collection")
+@version(0, 1)
 def get_collection(
     collection_iri: str,
     controller: GlossaryController = Depends(get_controller),
@@ -176,7 +185,8 @@ def get_collection(
     return controller.get_collection(collection_iri, lang=lang)
 
 
-@router.get("/concept")
+@router_versioned.get("/concept")
+@version(0, 1)
 def get_concept(
     concept_iri: str,
     controller: GlossaryController = Depends(get_controller),

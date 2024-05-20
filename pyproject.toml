@@ -29,6 +29,7 @@ dependencies = [
     "appdirs",
     "defusedxml==0.7.1",
     "fastapi",
+    "fastapi-versioning",
     "jinja2",
     "lxml",
     "owlready2",

@@ -32,14 +32,14 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
     )
     GlossaryController.datasets = [saved_dataset, failed_dataset]
 
-    response = client.get("/version")
+    response = client.get("/latest/version")
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
     assert response.json() == VersionResponse(version=__version__).model_dump()
 
     api_key = os_getenv("API_KEY", "")
     headers: Mapping[str, str] = {"X-API-Key": api_key}
-    response = client.post("/init_datasets", headers=headers)
+    response = client.post("/latest/init_datasets", headers=headers)
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
     assert (
@@ -50,7 +50,7 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
         ).model_dump()
     )
 
-    response = client.get("/schemes?lang=sk")
+    response = client.get("/latest/schemes?lang=sk")
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
     assert response.json() == [
@@ -91,13 +91,17 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
             "prefLabel": "Collection2PrefLabel",
         },
     ]
-    response = client.get(f"/concepts?concept_scheme_iri={scheme_iris[0]}&lang=sk")
+    response = client.get(
+        f"/latest/concepts?concept_scheme_iri={scheme_iris[0]}&lang=sk"
+    )
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
     assert response.json() == {"concepts": member_dicts}
 
     related_concept_dict = response.json()["concepts"][1]
-    response = client.get(f"/concept?concept_iri={member_dicts[0]['iri']}&lang=sk")
+    response = client.get(
+        f"/latest/concept?concept_iri={member_dicts[0]['iri']}&lang=sk"
+    )
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
     assert response.json() == {
@@ -113,7 +117,7 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
     }
 
     collection_iri = "https://example.org/collection1"
-    response = client.get(f"/collection?collection_iri={collection_iri}&lang=sk")
+    response = client.get(f"/latest/collection?collection_iri={collection_iri}&lang=sk")
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
     assert (
