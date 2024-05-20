@@ -39,8 +39,11 @@ def engine_init_checks(engine: Engine) -> None:
 
     inspector = inspect(engine)
     assert inspector.has_table("concept_schemes")
+    assert inspector.has_table("collections")
     assert inspector.has_table("concepts")
     assert inspector.has_table("semantic_relations")
+    assert inspector.has_table("in_scheme")
+    assert inspector.has_table("in_collection")
 
 
 def test_init_engine_env_var_not_found(monkeypatch) -> None:

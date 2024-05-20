@@ -37,12 +37,12 @@ def init_engine(
         raise ValueError("DATABASE_URL environment variable is not set.")
     engine = create_engine(database_url)
 
-    if database_exists(engine.url):
-        if not drop_database_flag:
-            return engine
+    if not database_exists(engine.url):
+        create_database(engine.url)
+    elif drop_database_flag:
         drop_database(engine.url)
+        create_database(engine.url)
 
-    create_database(engine.url)
     Base.metadata.create_all(engine)
     return engine
 
