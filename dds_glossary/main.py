@@ -6,10 +6,8 @@ from os import getenv as os_getenv
 import sentry_sdk
 import uvicorn
 from fastapi import FastAPI
-from fastapi.templating import Jinja2Templates
 
 from .routes import router
-from .services import GlossaryController
 
 
 def create_app() -> FastAPI:
@@ -28,8 +26,6 @@ def create_app() -> FastAPI:
         profiles_sample_rate=1.0,
     )
     app = FastAPI()
-    app.state.controller = GlossaryController()
-    app.state.templates = Jinja2Templates(directory="templates")
     app.include_router(router)
     return app
 

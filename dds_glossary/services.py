@@ -7,7 +7,9 @@ from typing import ClassVar
 from appdirs import user_data_dir
 from defusedxml.lxml import parse as parse_xml
 from fastapi import HTTPException
+from fastapi.templating import Jinja2Templates
 from owlready2 import get_ontology, onto_path
+from sqlalchemy import Engine
 
 from .database import (
     get_collection,
@@ -84,8 +86,9 @@ class GlossaryController:
     def __init__(
         self,
         data_dir_path: str | Path = user_data_dir("dds_glossary", "dds_glossary"),
+        engine: Engine | None = None,
     ) -> None:
-        self.engine = init_engine()
+        self.engine = engine if engine else init_engine()
         self.data_dir = Path(data_dir_path)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         onto_path.append(str(self.data_dir))
@@ -292,3 +295,23 @@ class GlossaryController:
             ConceptResponse(**concept.to_dict(lang=lang))
             for concept in search_database(self.engine, search_term, lang=lang)
         ]
+
+
+def get_controller() -> GlossaryController:
+    """
+    Get the glossary controller.
+
+    Returns:
+        GlossaryController: The glossary controller.
+    """
+    return GlossaryController()
+
+
+def get_templates() -> Jinja2Templates:
+    """
+    Get the Jinja2 templates.
+
+    Returns:
+        Jinja2Templates: The Jinja2 templates.
+    """
+    return Jinja2Templates(directory="templates")

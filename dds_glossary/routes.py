@@ -4,7 +4,7 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse, RedirectResponse
-from starlette.templating import _TemplateResponse
+from starlette.templating import Jinja2Templates, _TemplateResponse
 
 from .auth import get_api_key
 from .schema import (
@@ -15,6 +15,7 @@ from .schema import (
     InitDatasetsResponse,
     VersionResponse,
 )
+from .services import GlossaryController, get_controller, get_templates
 
 router = APIRouter()
 
@@ -22,6 +23,8 @@ router = APIRouter()
 @router.get("/")
 def home(
     request: Request,
+    controller: GlossaryController = Depends(get_controller),
+    templates: Jinja2Templates = Depends(get_templates),
     search_term: str = "",
     concept_scheme_iri: str = "",
     lang: str = "en",
@@ -33,6 +36,8 @@ def home(
 
     Args:
         request (Request): The request.
+        controller (GlossaryController): The glossary controller.
+        templates (Jinja2Templates): The Jinja2 templates.
         search_term (str): The search term to filter the concepts. Defaults to "".
         concept_scheme_iri (str): The concept scheme IRI to filter the concepts.
             Defaults to "".
@@ -42,17 +47,15 @@ def home(
         _TemplateResponse: The home page with search results if any.
     """
     if concept_scheme_iri:
-        concepts = request.app.state.controller.get_concepts(
-            concept_scheme_iri, lang=lang
-        )
+        concepts = controller.get_concepts(concept_scheme_iri, lang=lang)
     else:
-        concepts = request.app.state.controller.search_database(search_term, lang=lang)
+        concepts = controller.search_database(search_term, lang=lang)
 
-    return request.app.state.templates.TemplateResponse(
+    return templates.TemplateResponse(
         "home.html",
         {
             "request": request,
-            "schemes": request.app.state.controller.get_concept_schemes(lang=lang),
+            "schemes": controller.get_concept_schemes(lang=lang),
             "concepts": concepts,
         },
     )
@@ -66,8 +69,8 @@ def status() -> RedirectResponse:
 
 @router.get("/search")
 def search(
-    request: Request,
     search_term: str,
+    controller: GlossaryController = Depends(get_controller),
     lang: str = "en",
 ) -> list[ConceptResponse]:
     """Search concepts according to given expression.
@@ -75,12 +78,13 @@ def search(
 
     Args:
         search_term (str): The search term to filter the concepts.
+        controller (GlossaryController): The glossary controller.
         lang (str): The language to use for searching concepts. Defaults to "en".
 
     Returns:
         list[ConceptResponse]: The search results, if any.
     """
-    return request.app.state.controller.search_database(search_term, lang=lang)
+    return controller.search_database(search_term, lang=lang)
 
 
 @router.get("/version")
@@ -95,58 +99,60 @@ def get_version() -> VersionResponse:
 
 @router.post("/init_datasets")
 def init_datasets(
-    request: Request,
+    controller: GlossaryController = Depends(get_controller),
     _api_key: dict = Depends(get_api_key),
     reload: bool = False,
 ) -> InitDatasetsResponse:
     """Initialize the datasets.
 
     Args:
+        controller (GlossaryController): The glossary controller.
         _api_key (dict): The API key.
         reload (bool): Flag to reload the datasets. Defaults to False.
 
     Returns:
         InitDatasetsResponse: The response.
     """
-    return request.app.state.controller.init_datasets(reload=reload)
+    return controller.init_datasets(reload=reload)
 
 
 @router.get("/schemes")
 def get_concept_schemes(
-    request: Request, lang: str = "en"
+    controller: GlossaryController = Depends(get_controller),
+    lang: str = "en",
 ) -> list[ConceptSchemeResponse]:
     """
     Returns all the saved concept schemes.
 
     Args:
+        controller (GlossaryController): The glossary controller.
         lang (str): The language. Defaults to "en".
 
     Returns:
         list[ConceptSchemeResponse]: The concept schemes.
     """
-    return request.app.state.controller.get_concept_schemes(lang=lang)
+    return controller.get_concept_schemes(lang=lang)
 
 
 @router.get("/concepts")
 def get_concepts(
-    request: Request, concept_scheme_iri: str, lang: str = "en"
+    concept_scheme_iri: str,
+    controller: GlossaryController = Depends(get_controller),
+    lang: str = "en",
 ) -> JSONResponse:
     """
     Returns all the saved concepts for a concept scheme.
 
     Args:
         concept_scheme_iri (str): The concept scheme IRI.
+        controller (GlossaryController): The glossary controller.
         lang (str): The language. Defaults to "en".
 
     Returns:
         JSONResponse: The concepts.
     """
     return JSONResponse(
-        content={
-            "concepts": request.app.state.controller.get_concepts(
-                concept_scheme_iri, lang=lang
-            ),
-        },
+        content={"concepts": controller.get_concepts(concept_scheme_iri, lang=lang)},
         media_type="application/json",
         status_code=HTTPStatus.OK,
     )
@@ -154,24 +160,27 @@ def get_concepts(
 
 @router.get("/collection")
 def get_collection(
-    request: Request,
     collection_iri: str,
+    controller: GlossaryController = Depends(get_controller),
     lang: str = "en",
 ) -> CollectionResponse:
     """
     Returns a collection.
     Args:
         collection_iri (str): The collection IRI.
+        controller (GlossaryController): The glossary controller.
         lang (str): The language. Defaults to "en".
     Returns:
         JSONResponse: The collection.
     """
-    return request.app.state.controller.get_collection(collection_iri, lang=lang)
+    return controller.get_collection(collection_iri, lang=lang)
 
 
 @router.get("/concept")
 def get_concept(
-    request: Request, concept_iri: str, lang: str = "en"
+    concept_iri: str,
+    controller: GlossaryController = Depends(get_controller),
+    lang: str = "en",
 ) -> FullConeptResponse:
     """
     Returns a concept.
@@ -183,4 +192,4 @@ def get_concept(
     Returns:
         FullConeptResponse: The concept with concept scheme and relations.
     """
-    return request.app.state.controller.get_concept(concept_iri, lang=lang)
+    return controller.get_concept(concept_iri, lang=lang)
