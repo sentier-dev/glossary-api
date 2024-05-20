@@ -29,7 +29,7 @@ def create_app() -> FastAPI:
 
     app = FastAPI()
     app.include_router(router_versioned)
-    app = VersionedFastAPI(app, enable_latest=True)
+    app = VersionedFastAPI(app, enable_latest=True, default_version=(0, 1))
     app.include_router(router_non_versioned)
 
     return app
