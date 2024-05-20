@@ -1,4 +1,4 @@
-"""Tests for dds_glossary.controllers module."""
+"""Tests for dds_glossary.services module."""
 
 from http import HTTPStatus
 from pathlib import Path
@@ -7,9 +7,9 @@ from fastapi import HTTPException
 from pytest import MonkeyPatch
 from pytest import raises as pytest_raises
 
-from dds_glossary.controllers import GlossaryController
 from dds_glossary.model import Dataset, FailedDataset
 from dds_glossary.schema import FullConeptResponse, RelationResponse
+from dds_glossary.services import GlossaryController
 
 from ..common import add_collections, add_concept_schemes, add_concepts, add_relations
 

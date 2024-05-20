@@ -6,14 +6,15 @@ from typing import Generator
 from defusedxml.lxml import parse as parse_xml
 from fastapi.testclient import TestClient
 from owlready2 import onto_path
-from pytest import fixture
+from pytest import MonkeyPatch, fixture
 from sqlalchemy.engine import Engine
 from sqlalchemy_utils import database_exists, drop_database
 
-from dds_glossary.controllers import GlossaryController
+import dds_glossary.services
 from dds_glossary.database import init_engine
 from dds_glossary.main import create_app
 from dds_glossary.model import Collection, Concept, ConceptScheme, SemanticRelation
+from dds_glossary.services import GlossaryController
 
 
 @fixture(name="dir_data")
@@ -92,11 +93,21 @@ def _controller(tmp_path: Path) -> Generator[GlossaryController, None, None]:
 
 
 @fixture(name="client")
-def _client(tmp_path: Path) -> Generator[TestClient, None, None]:
+def _client(
+    tmp_path: Path,
+    monkeypatch: MonkeyPatch,
+) -> Generator[TestClient, None, None]:
+    engine = init_engine(drop_database_flag=True)
+    monkeypatch.setattr(
+        dds_glossary.services,
+        "get_controller",
+        lambda: GlossaryController(
+            data_dir_path=tmp_path,
+            engine=engine,
+        ),
+    )
     app = create_app()
-    app.state.controller.data_dir = tmp_path
-    app.state.controller.engine = init_engine(drop_database_flag=True)
     onto_path.append(str(tmp_path))
     with TestClient(app) as client:
         yield client
-    _clean_database(app.state.controller.engine)
+    _clean_database(engine)
