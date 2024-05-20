@@ -1,4 +1,4 @@
-"""Tests for dds_glossary.main module."""
+"""Tests for dds_glossary.routes module."""
 
 from http import HTTPStatus
 
