@@ -59,6 +59,7 @@ test = [
 dev = [
     "build",
     "httpx",
+    "invoke",
     "mypy",
     "pre-commit",
     "pylint",
