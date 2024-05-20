@@ -78,6 +78,39 @@ def test_base_get_in_language_no_language_specified_no_english(
     assert Base.get_in_language(concept_scheme.prefLabels) == ""
 
 
+def test_base_get_in_language_list_language_exists(concept: Concept) -> None:
+    """It should return the preferred label in the specified language."""
+    assert Base.get_in_language(concept.altLabels, "sk") == [
+        "-- Trupy a polovičky trupov"
+    ]
+
+
+def test_base_get_in_language_list_language_does_not_exist(concept: Concept) -> None:
+    """It should return the preferred label in English if the specified language does
+    not exist."""
+    assert Base.get_in_language(concept.altLabels, "fr") == [
+        "-- Carcases and half-carcases",
+        "0203 21 -- Carcases and half-carcases",
+    ]
+
+
+def test_base_get_in_language_list_no_language_specified(concept: Concept) -> None:
+    """It should return the preferred label in English if no language is specified."""
+    assert Base.get_in_language(concept.altLabels) == [
+        "-- Carcases and half-carcases",
+        "0203 21 -- Carcases and half-carcases",
+    ]
+
+
+def test_base_get_in_language_list_no_language_specified_no_english(
+    concept: Concept,
+) -> None:
+    """It should return an empty list if no language is specified and English does
+    not exist."""
+    concept.altLabels = {}
+    assert Base.get_in_language_list(concept.altLabels) == []
+
+
 def test_concept_scheme_from_xml_element(concept_scheme: ConceptScheme) -> None:
     """It should return a ConceptScheme instance from an XML element."""
     assert concept_scheme.iri == "http://data.europa.eu/xsp/cn2024/cn2024"
@@ -143,10 +176,13 @@ def test_concept_from_xml_element(concept: Concept) -> None:
         "mt": "0203 21 -- Karkassi u nofs karkassi",
     }
     assert concept.altLabels == {
-        "en": "-- Carcases and half-carcases",
-        "sk": "-- Trupy a polovičky trupov",
-        "et": "-- rümbad ja poolrümbad",
-        "mt": "-- Karkassi u nofs karkassi",
+        "en": [
+            "-- Carcases and half-carcases",
+            "0203 21 -- Carcases and half-carcases",
+        ],
+        "sk": ["-- Trupy a polovičky trupov"],
+        "et": ["-- rümbad ja poolrümbad"],
+        "mt": ["-- Karkassi u nofs karkassi"],
     }
     assert concept.scopeNotes == {
         "en": "Frozen carcases and half-carcases of swine",
@@ -163,7 +199,7 @@ def test_concept_to_dict(concept: Concept) -> None:
         "identifier": "020321000080",
         "notation": "0203 21",
         "prefLabel": "0203 21 -- Trupy a polovičky trupov",
-        "altLabel": "-- Trupy a polovičky trupov",
+        "altLabels": ["-- Trupy a polovičky trupov"],
         "scopeNote": "Frozen carcases and half-carcases of swine",
     }
 

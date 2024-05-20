@@ -39,7 +39,7 @@ def add_concepts(engine: Engine, concept_scheme_iris: list[str]) -> list[dict]:
                 identifier=f"identifier{i}",
                 notation=f"notation{i}",
                 prefLabels={"en": f"prefLabel{i}"},
-                altLabels={"en": f"altLabel{i}"},
+                altLabels={"en": [f"altLabel{i}"]},
                 scopeNotes={"en": f"scopeNote{i}"},
                 concept_schemes=[
                     (

@@ -1,6 +1,7 @@
 """Model classes for the dds_glossary package."""
 
 from abc import abstractmethod
+from collections import defaultdict
 from enum import Enum
 from typing import ClassVar
 
@@ -70,7 +71,10 @@ class SemanticRelationType(Enum):
 class Base(DeclarativeBase):
     """Base class for all models."""
 
-    type_annotation_map: ClassVar[dict] = {dict[str, str]: JSONB}
+    type_annotation_map: ClassVar[dict] = {
+        dict[str, str]: JSONB,
+        dict[str, list[str]]: JSONB,
+    }
     xml_namespace: ClassVar[str] = "{http://www.w3.org/XML/1998/namespace}"
 
     def __eq__(self, other: object) -> bool:
@@ -109,6 +113,23 @@ class Base(DeclarativeBase):
                 English.
         """
         return attribute.get(lang, attribute.get("en", ""))
+
+    @staticmethod
+    def get_in_language_list(attribute: dict, lang: str = "en") -> list[str]:
+        """
+        Get the value of the attribute in the specified language. If the attribute is
+        not available in the specified language, return the attribute in English. If the
+        attribute is not available in English, return an empty list.
+
+        Args:
+            attribute (dict): The attribute to search for.
+            lang (str): The language code of the attribute. Defaults to English ("en").
+
+        Returns:
+            list[str]: The attribute in the specified language if available,
+                otherwise in English.
+        """
+        return attribute.get(lang, attribute.get("en", []))
 
     @abstractmethod
     def to_dict(self) -> dict:
@@ -372,10 +393,10 @@ class Concept(Member):
     Attributes:
         iri (str): The Internationalized Resource Identifier of the concept.
         identifier (str): The identifier of the concept.
-        altLabels (dict[str, str]): The alternative labels of the concept. This is a
-            dictionary where the key is the language code and the value is the label in
-            that language. To get the alternative label in a specific language, use the
-            `get_in_language` method.
+        altLabels (dict[str, list[str]]): The alternative labels of the concept. This is
+            a dictionary where the key is the language code and the value is a list of
+            labels in that language. To get the alternative labels in a specific
+            language, use the `get_in_language_list` method.
         scopeNotes (dict[str, str]): The scope notes of the concept.
             This is a dictionary where the key is the language code and the value is the
             note in that language. To get the scope note in a specific language, use the
@@ -386,7 +407,7 @@ class Concept(Member):
 
     iri: Mapped[str] = mapped_column(ForeignKey(Member.iri), primary_key=True)
     identifier: Mapped[str] = mapped_column()
-    altLabels: Mapped[dict[str, str]] = mapped_column()
+    altLabels: Mapped[dict[str, list[str]]] = mapped_column()
     scopeNotes: Mapped[dict[str, str]] = mapped_column()
 
     __mapper_args__ = {
@@ -410,6 +431,9 @@ class Concept(Member):
         Returns:
             Concept: The parsed Concept instance.
         """
+        alt_labels = defaultdict(list)
+        for label in element.findall("core:altLabel", namespaces=element.nsmap):
+            alt_labels[label.get(f"{cls.xml_namespace}lang")].append(label.text)
         return Concept(
             iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
             identifier=cls.get_sub_element_text(element, "x_1.1:identifier"),
@@ -418,10 +442,7 @@ class Concept(Member):
                 label.get(f"{cls.xml_namespace}lang"): label.text
                 for label in element.findall("core:prefLabel", namespaces=element.nsmap)
             },
-            altLabels={
-                label.get(f"{cls.xml_namespace}lang"): label.text
-                for label in element.findall("core:altLabel", namespaces=element.nsmap)
-            },
+            altLabels=alt_labels,
             scopeNotes={
                 note.get(f"{cls.xml_namespace}lang"): note.text
                 for note in element.findall("core:scopeNote", namespaces=element.nsmap)
@@ -434,7 +455,7 @@ class Concept(Member):
         Return the Concept instance as a dictionary.
 
         Args:
-            lang (str): The language code of the prefLabel, altLabel
+            lang (str): The language code of the prefLabel, altLabels
                 and scopeNote.
 
         Returns:
@@ -445,7 +466,7 @@ class Concept(Member):
             "identifier": self.identifier,
             "notation": self.notation,
             "prefLabel": self.get_in_language(self.prefLabels, lang=lang),
-            "altLabel": self.get_in_language(self.altLabels, lang=lang),
+            "altLabels": self.get_in_language_list(self.altLabels, lang=lang),
             "scopeNote": self.get_in_language(self.scopeNotes, lang=lang),
         }
 

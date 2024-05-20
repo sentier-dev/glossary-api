@@ -4,7 +4,7 @@ import shutil
 from http import HTTPStatus
 from os import getenv as os_getenv
 from pathlib import Path
-from typing import Mapping
+from typing import Any, Mapping
 
 from fastapi.testclient import TestClient
 
@@ -63,13 +63,13 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
     ]
 
     scheme_iris = [scheme["iri"] for scheme in response.json()]
-    member_dicts = [
+    member_dicts: list[dict[str, Any]] = [
         {
             "iri": "http://data.europa.eu/xsp/cn2024/020321000080",
             "identifier": "020321000080",
             "notation": "0203 21",
             "prefLabel": "0203 21 -- Trupy a polovičky trupov",
-            "altLabel": "-- Trupy a polovičky trupov",
+            "altLabels": ["-- Trupy a polovičky trupov"],
             "scopeNote": "Frozen carcases and half-carcases of swine",
         },
         {
@@ -77,7 +77,7 @@ def test_fresh_start(client: TestClient, dir_data: Path) -> None:
             "identifier": "020321000010",
             "notation": "",
             "prefLabel": "- Mrazené",
-            "altLabel": "- Frozen",
+            "altLabels": ["- Frozen"],
             "scopeNote": "",
         },
         {

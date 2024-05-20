@@ -57,6 +57,7 @@ test = [
     "python-coveralls",
 ]
 dev = [
+    "alembic",
     "build",
     "httpx",
     "mypy",
