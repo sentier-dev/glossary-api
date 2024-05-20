@@ -6,8 +6,9 @@ from os import getenv as os_getenv
 import sentry_sdk
 import uvicorn
 from fastapi import FastAPI
+from fastapi_versioning import VersionedFastAPI
 
-from .routes import router
+from .routes import router_non_versioned, router_versioned
 
 
 def create_app() -> FastAPI:
@@ -25,8 +26,12 @@ def create_app() -> FastAPI:
         # We recommend adjusting this value in production.
         profiles_sample_rate=1.0,
     )
+
     app = FastAPI()
-    app.include_router(router)
+    app.include_router(router_versioned)
+    app = VersionedFastAPI(app, enable_latest=True)
+    app.include_router(router_non_versioned)
+
     return app
 
 
