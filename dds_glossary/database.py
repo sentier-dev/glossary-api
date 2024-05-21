@@ -92,7 +92,7 @@ def get_concept_schemes(engine: Engine) -> list[ConceptScheme]:
         return session.query(ConceptScheme).all()
 
 
-def get_concept_scheme(engine: Engine, concept_scheme_iri: str) -> ConceptScheme | None:
+def get_concept_scheme(engine: Engine, concept_scheme_iri: str) -> ConceptScheme:
     """
     Get the concept scheme from the database.
 
@@ -101,7 +101,10 @@ def get_concept_scheme(engine: Engine, concept_scheme_iri: str) -> ConceptScheme
         concept_scheme_iri (str): The concept scheme IRI.
 
     Returns:
-        ConceptScheme | None: The concept scheme or None if not found.
+        ConceptScheme: The concept scheme.
+
+    Raises:
+        NoResultFound: If the concept scheme is not found.
     """
     with Session(engine) as session:
         member_polymorphic = with_polymorphic(
@@ -113,11 +116,11 @@ def get_concept_scheme(engine: Engine, concept_scheme_iri: str) -> ConceptScheme
             session.query(ConceptScheme)
             .where(ConceptScheme.iri == concept_scheme_iri)
             .options(joinedload(ConceptScheme.members.of_type(member_polymorphic)))
-            .one_or_none()
+            .one()
         )
 
 
-def get_collection(engine: Engine, collection_iri: str) -> Collection | None:
+def get_collection(engine: Engine, collection_iri: str) -> Collection:
     """
     Get the collection from the database.
 
@@ -126,7 +129,10 @@ def get_collection(engine: Engine, collection_iri: str) -> Collection | None:
         collection_iri (str): The collection IRI.
 
     Returns:
-        Collection | None: The collection or None if not found.
+        Collection: The collection.
+
+    Raises:
+        NoResultFound: If the collection is not found.
     """
     with Session(engine) as session:
         member_polymorphic = with_polymorphic(
@@ -138,27 +144,30 @@ def get_collection(engine: Engine, collection_iri: str) -> Collection | None:
             session.query(Collection)
             .where(Collection.iri == collection_iri)
             .options(joinedload(Collection.members.of_type(member_polymorphic)))
-            .one_or_none()
+            .one()
         )
 
 
-def get_concept(engine: Engine, concept_iri: str) -> Concept | None:
+def get_concept(engine: Engine, concept_iri: str) -> Concept:
     """
-    Get the concept from the database, if found.
+    Get the concept from the database.
 
     Args:
         engine (Engine): The database engine.
         concept_iri (str): The concept IRI.
 
     Return:
-        Concept | None: The concept or None if not found.
+        Concept: The concept or None if not found.
+
+    Raises:
+        NoResultFound: If the concept is not found.
     """
     with Session(engine) as session:
         return (
             session.query(Concept)
             .where(Concept.iri == concept_iri)
             .options(joinedload(Concept.concept_schemes))
-            .one_or_none()
+            .one()
         )
 
 

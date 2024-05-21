@@ -57,17 +57,6 @@ class ConceptSchemeResponse(EntityResponse):
     scopeNote: str
 
 
-class CollectionResponse(EntityResponse):
-    """
-    Response model for the Collection model with members.
-
-    Attributes:
-        members (list[EntityResponse]): The members of the collection.
-    """
-
-    members: list[EntityResponse]
-
-
 class RelationResponse(BaseModel):
     """
     Response model for the SemanticRelation model.
@@ -98,7 +87,33 @@ class ConceptResponse(EntityResponse):
     altLabels: list[str]
 
 
-class FullConeptResponse(ConceptResponse):
+class FullConceptSchemeResponse(ConceptSchemeResponse):
+    """
+    Response model for the ConceptScheme model with collections and concepts.
+
+    Attributes:
+        collections (list[EntityResponse]): The collections.
+        concepts (list[ConceptResponse]): The concepts.
+    """
+
+    collections: list[EntityResponse]
+    concepts: list[ConceptResponse]
+
+
+class CollectionResponse(EntityResponse):
+    """
+    Response model for the Collection model with members.
+
+    Attributes:
+        collections (list[EntityResponse]): The collections.
+        concepts (list[ConceptResponse]): The concepts.
+    """
+
+    collections: list[EntityResponse]
+    concepts: list[ConceptResponse]
+
+
+class FullConceptResponse(ConceptResponse):
     """
     Response model for the Concept model with concept schemes and relations.
 

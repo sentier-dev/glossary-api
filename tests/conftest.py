@@ -11,9 +11,11 @@ from sqlalchemy.engine import Engine
 from sqlalchemy_utils import database_exists, drop_database
 
 import dds_glossary.services
+from dds_glossary import __version__
 from dds_glossary.database import init_engine
 from dds_glossary.main import create_app
 from dds_glossary.model import Collection, Concept, ConceptScheme, SemanticRelation
+from dds_glossary.schema import VersionResponse
 from dds_glossary.services import GlossaryController
 
 
@@ -71,6 +73,11 @@ def _semantic_relation(
     return SemanticRelation.from_xml_element(
         root_element.find("core:Concept", namespaces=root_element.nsmap)
     )[0]
+
+
+@fixture(name="version_response")
+def _version_response() -> VersionResponse:
+    return VersionResponse(version=__version__)
 
 
 def _clean_database(_engine: Engine) -> None:

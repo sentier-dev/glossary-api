@@ -1,15 +1,14 @@
 """Services classes and utils for the dds_glossary package."""
 
-from http import HTTPStatus
 from pathlib import Path
 from typing import ClassVar
 
 from appdirs import user_data_dir
 from defusedxml.lxml import parse as parse_xml
-from fastapi import HTTPException
 from fastapi.templating import Jinja2Templates
 from owlready2 import get_ontology, onto_path
 from sqlalchemy import Engine
+from sqlalchemy.exc import NoResultFound
 
 from .database import (
     get_collection,
@@ -21,12 +20,19 @@ from .database import (
     save_dataset,
     search_database,
 )
+from .exceptions import (
+    CollectionNotFoundException,
+    ConceptNotFoundException,
+    ConceptSchemeNotFoundException,
+)
 from .model import (
     Collection,
     Concept,
     ConceptScheme,
     Dataset,
     FailedDataset,
+    Member,
+    MemberType,
     SemanticRelation,
 )
 from .schema import (
@@ -34,7 +40,8 @@ from .schema import (
     ConceptResponse,
     ConceptSchemeResponse,
     EntityResponse,
-    FullConeptResponse,
+    FullConceptResponse,
+    FullConceptSchemeResponse,
     InitDatasetsResponse,
     RelationResponse,
 )
@@ -94,6 +101,22 @@ class GlossaryController:
         self.data_dir = Path(data_dir_path)
         self.data_dir.mkdir(parents=True, exist_ok=True)
         onto_path.append(str(self.data_dir))
+
+    @staticmethod
+    def get_scheme_members(
+        members: list[Member], member_type: MemberType
+    ) -> list[Member]:
+        """
+        Get the members for a concept scheme of type `member_type`.
+
+        Args:
+            members (list[Member]): The members.
+            member_type (MemberType): The member type.
+
+        Returns:
+            list[Member]: The members of type `member_type`.
+        """
+        return [member for member in members if member.member_type == member_type]
 
     def parse_dataset(
         self,
@@ -195,28 +218,73 @@ class GlossaryController:
             for concept_scheme in get_concept_schemes(self.engine)
         ]
 
-    def get_concepts(self, concept_scheme_iri: str, lang: str = "en") -> list[dict]:
+    def get_concept_scheme(
+        self, concept_scheme_iri: str, lang: str = "en"
+    ) -> FullConceptSchemeResponse:
         """
-        Get the concepts.
+        Get the concept scheme.
 
         Args:
             concept_scheme_iri (str): The concept scheme IRI.
             lang (str): The language. Defaults to "en".
 
         Returns:
-            list[dict]: The concepts as dictionaries.
+            FullConceptSchemeResponse: The concept scheme with its member
+                collections and concepts.
 
         Raises:
-            HTTPException: If the concept scheme is not found.
+            ConceptSchemeNotFoundException: If the concept scheme is not found.
         """
-        concept_scheme = get_concept_scheme(self.engine, concept_scheme_iri)
+        try:
+            concept_scheme = get_concept_scheme(self.engine, concept_scheme_iri)
+        except NoResultFound as nrf:
+            raise ConceptSchemeNotFoundException(concept_scheme_iri) from nrf
 
-        if concept_scheme:
-            return [concept.to_dict(lang=lang) for concept in concept_scheme.members]
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Concept scheme {concept_scheme_iri} not found.",
+        collections = self.get_scheme_members(
+            concept_scheme.members, MemberType.COLLECTION
         )
+        concepts = self.get_scheme_members(concept_scheme.members, MemberType.CONCEPT)
+        return FullConceptSchemeResponse(
+            **concept_scheme.to_dict(lang=lang),
+            collections=[
+                EntityResponse(**collection.to_dict(lang=lang))
+                for collection in collections
+            ],
+            concepts=[
+                ConceptResponse(**concept.to_dict(lang=lang)) for concept in concepts
+            ],
+        )
+
+    def get_collections(
+        self,
+        concept_scheme_iri: str,
+        lang: str = "en",
+    ) -> list[EntityResponse]:
+        """
+        Get the collections for a concept scheme.
+
+        Args:
+            concept_scheme_iri (str): The concept scheme IRI.
+            lang (str): The language. Defaults to "en".
+
+        Returns:
+            list[EntityResponse]: The collections.
+
+        Raises:
+            ConceptSchemeNotFoundException: If the concept scheme is not found.
+        """
+        try:
+            concept_scheme = get_concept_scheme(self.engine, concept_scheme_iri)
+        except NoResultFound as nrf:
+            raise ConceptSchemeNotFoundException(concept_scheme_iri) from nrf
+
+        collections = self.get_scheme_members(
+            concept_scheme.members, MemberType.COLLECTION
+        )
+        return [
+            EntityResponse(**collection.to_dict(lang=lang))
+            for collection in collections
+        ]
 
     def get_collection(
         self, collection_iri: str, lang: str = "en"
@@ -229,27 +297,57 @@ class GlossaryController:
             lang (str): The language. Defaults to "en".
 
         Returns:
-            CollectionResponse: The collection with its members.
+            CollectionResponse: The collection with its member collections
+                and concepts.
 
         Raises:
-            HTTPException: If the collection is not found.
+            CollectionNotFoundException: If the collection is not found.
         """
-        collection = get_collection(self.engine, collection_iri)
+        try:
+            collection = get_collection(self.engine, collection_iri)
+        except NoResultFound as nrf:
+            raise CollectionNotFoundException(collection_iri) from nrf
 
-        if collection:
-            return CollectionResponse(
-                **collection.to_dict(lang=lang),
-                members=[
-                    EntityResponse(**member.to_dict(lang=lang))
-                    for member in collection.members
-                ],
-            )
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Collection {collection_iri} not found.",
+        collections = self.get_scheme_members(collection.members, MemberType.COLLECTION)
+        concepts = self.get_scheme_members(collection.members, MemberType.CONCEPT)
+        return CollectionResponse(
+            **collection.to_dict(lang=lang),
+            collections=[
+                EntityResponse(**collection.to_dict(lang=lang))
+                for collection in collections
+            ],
+            concepts=[
+                ConceptResponse(**concept.to_dict(lang=lang)) for concept in concepts
+            ],
         )
 
-    def get_concept(self, concept_iri: str, lang: str = "en") -> FullConeptResponse:
+    def get_concepts(
+        self,
+        concept_scheme_iri: str,
+        lang: str = "en",
+    ) -> list[ConceptResponse]:
+        """
+        Get the concepts for a concept scheme.
+
+        Args:
+            concept_scheme_iri (str): The concept scheme IRI.
+            lang (str): The language. Defaults to "en".
+
+        Returns:
+            list[ConceptResponse]: The concepts.
+
+        Raises:
+            ConceptSchemeNotFoundException: If the concept scheme is not found.
+        """
+        try:
+            concept_scheme = get_concept_scheme(self.engine, concept_scheme_iri)
+        except NoResultFound as nrf:
+            raise ConceptSchemeNotFoundException(concept_scheme_iri) from nrf
+
+        concepts = self.get_scheme_members(concept_scheme.members, MemberType.CONCEPT)
+        return [ConceptResponse(**concept.to_dict(lang=lang)) for concept in concepts]
+
+    def get_concept(self, concept_iri: str, lang: str = "en") -> FullConceptResponse:
         """
         Get the concept and al its relations.
 
@@ -258,25 +356,23 @@ class GlossaryController:
             lang (str): The language. Defaults to "en".
 
         Returns:
-            FullConeptResponse: The concept with its concept schemes and relations.
+            FullConceptResponse: The concept with its concept schemes and relations.
 
         Raises:
-            HTTPException: If the concept is not found.
+            ConceptNotFoundException: If the concept is not found.
         """
-        concept = get_concept(self.engine, concept_iri)
+        try:
+            concept = get_concept(self.engine, concept_iri)
+        except NoResultFound as nrf:
+            raise ConceptNotFoundException(concept_iri) from nrf
 
-        if concept:
-            return FullConeptResponse(
-                **concept.to_dict(lang=lang),
-                concept_schemes=[scheme.iri for scheme in concept.concept_schemes],
-                relations=[
-                    RelationResponse(**relation.to_dict())
-                    for relation in get_relations(self.engine, concept_iri)
-                ],
-            )
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND,
-            detail=f"Concept {concept_iri} not found.",
+        return FullConceptResponse(
+            **concept.to_dict(lang=lang),
+            concept_schemes=[scheme.iri for scheme in concept.concept_schemes],
+            relations=[
+                RelationResponse(**relation.to_dict())
+                for relation in get_relations(self.engine, concept_iri)
+            ],
         )
 
     def search_database(

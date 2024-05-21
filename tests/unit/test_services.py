@@ -3,12 +3,23 @@
 from http import HTTPStatus
 from pathlib import Path
 
-from fastapi import HTTPException
 from pytest import MonkeyPatch
 from pytest import raises as pytest_raises
 
+from dds_glossary.exceptions import (
+    CollectionNotFoundException,
+    ConceptNotFoundException,
+    ConceptSchemeNotFoundException,
+)
 from dds_glossary.model import Dataset, FailedDataset
-from dds_glossary.schema import FullConeptResponse, RelationResponse
+from dds_glossary.schema import (
+    CollectionResponse,
+    ConceptResponse,
+    EntityResponse,
+    FullConceptResponse,
+    FullConceptSchemeResponse,
+    RelationResponse,
+)
 from dds_glossary.services import GlossaryController
 
 from ..common import add_collections, add_concept_schemes, add_concepts, add_relations
@@ -94,24 +105,51 @@ def test_get_concept_schemes(controller: GlossaryController) -> None:
     assert concept_schemes[0].model_dump() == concept_scheme_dicts[0]
 
 
-def test_get_concepts(controller: GlossaryController) -> None:
-    """Test the GlossaryController get_concepts method."""
+def test_get_concept_scheme(controller: GlossaryController) -> None:
+    """Test the GlossaryController get_concept_scheme method."""
     concept_scheme_dicts = add_concept_schemes(controller.engine, 1)
     concept_dicts = add_concepts(controller.engine, [concept_scheme_dicts[0]["iri"]])
+    collections_dicts = add_collections(
+        controller.engine,
+        [concept_scheme_dicts[0]["iri"]] * 2,
+        [[concept_dicts[0]["iri"]], ["collection_iri0"]],
+    )
+    expected_concept_scheme = FullConceptSchemeResponse(
+        **concept_scheme_dicts[0],
+        concepts=[ConceptResponse(**concept_dict) for concept_dict in concept_dicts],
+        collections=[
+            EntityResponse(**collections_dict) for collections_dict in collections_dicts
+        ],
+    )
 
-    concepts = controller.get_concepts(concept_scheme_dicts[0]["iri"])
-    assert len(concepts) == len(concept_dicts)
-    assert concepts == concept_dicts
+    concept_scheme = controller.get_concept_scheme(concept_scheme_dicts[0]["iri"])
+    assert concept_scheme == expected_concept_scheme
 
 
-def test_get_concepts_not_found(controller: GlossaryController) -> None:
-    """Test the GlossaryController get_concepts method with a concept scheme
+def test_get_concept_scheme_not_found(controller: GlossaryController) -> None:
+    """Test the GlossaryController get_concept_scheme method with a concept scheme
     not found."""
     concept_scheme_iri = "http://example.org/concept_scheme"
-    with pytest_raises(HTTPException) as exc_info:
-        controller.get_concepts(concept_scheme_iri)
+    with pytest_raises(ConceptSchemeNotFoundException) as exc_info:
+        controller.get_concept_scheme(concept_scheme_iri)
     assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
     assert exc_info.value.detail == f"Concept scheme {concept_scheme_iri} not found."
+
+
+def test_get_collections(controller: GlossaryController) -> None:
+    """Test the GlossaryController get_collections method."""
+    concept_scheme_dicts = add_concept_schemes(controller.engine, 1)
+    collection_dicts = add_collections(
+        controller.engine,
+        [concept_scheme_dicts[0]["iri"]] * 2,
+        [[], []],
+    )
+    expected_collections = [
+        EntityResponse(**collection_dict) for collection_dict in collection_dicts
+    ]
+
+    collections = controller.get_collections(concept_scheme_dicts[0]["iri"])
+    assert collections == expected_collections
 
 
 def test_get_collection(controller: GlossaryController) -> None:
@@ -120,34 +158,54 @@ def test_get_collection(controller: GlossaryController) -> None:
     concept_dicts = add_concepts(
         controller.engine, [concept_scheme_dicts[0]["iri"]] * 3
     )
-    member_iri_lists = [
-        [
-            concept_dicts[0]["iri"],
-            concept_dicts[1]["iri"],
+    collection_dicts = add_collections(
+        controller.engine,
+        [concept_scheme_dicts[0]["iri"]],
+        [[concept_dicts[0]["iri"], concept_dicts[1]["iri"]]],
+    )
+    expected_collection = CollectionResponse(
+        **collection_dicts[0],
+        concepts=[
+            ConceptResponse(**concept_dict) for concept_dict in concept_dicts[:2]
         ],
-        ["collection_iri0"],
-    ]
-    collection_dicts = add_collections(controller.engine, member_iri_lists)
-    collection_dicts[0]["members"] = [
-        {
-            "iri": concept_dicts[i]["iri"],
-            "notation": concept_dicts[i]["notation"],
-            "prefLabel": concept_dicts[i]["prefLabel"],
-        }
-        for i in range(2)
-    ]
+        collections=[],
+    )
 
     collection = controller.get_collection(collection_dicts[0]["iri"])
-    assert collection.model_dump() == collection_dicts[0]
+    assert collection == expected_collection
 
 
 def test_get_collection_not_found(controller: GlossaryController) -> None:
     """Test the GlossaryController get_collection method with a collection not found."""
     collection_iri = "http://example.org/collection"
-    with pytest_raises(HTTPException) as exc_info:
+    with pytest_raises(CollectionNotFoundException) as exc_info:
         controller.get_collection(collection_iri)
     assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
     assert exc_info.value.detail == f"Collection {collection_iri} not found."
+
+
+def test_get_concepts(controller: GlossaryController) -> None:
+    """Test the GlossaryController get_concepts method."""
+    concept_scheme_dicts = add_concept_schemes(controller.engine, 1)
+    concept_dicts = add_concepts(
+        controller.engine, [concept_scheme_dicts[0]["iri"]] * 2
+    )
+    expected_concepts = [
+        ConceptResponse(**concept_dict) for concept_dict in concept_dicts
+    ]
+
+    concepts = controller.get_concepts(concept_scheme_dicts[0]["iri"])
+    assert concepts == expected_concepts
+
+
+def test_get_concepts_not_found(controller: GlossaryController) -> None:
+    """Test the GlossaryController get_concepts method with a concept scheme
+    not found."""
+    concept_scheme_iri = "http://example.org/concept_scheme"
+    with pytest_raises(ConceptSchemeNotFoundException) as exc_info:
+        controller.get_concepts(concept_scheme_iri)
+    assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
+    assert exc_info.value.detail == f"Concept scheme {concept_scheme_iri} not found."
 
 
 def test_get_concept(controller: GlossaryController) -> None:
@@ -160,7 +218,7 @@ def test_get_concept(controller: GlossaryController) -> None:
     relation_dicts = add_relations(
         controller.engine, [(concept_dicts[0]["iri"], concept_dicts[1]["iri"])]
     )
-    expected_concept = FullConeptResponse(
+    expected_concept = FullConceptResponse(
         **concept_dicts[0],
         concept_schemes=[concept_scheme_dicts[0]["iri"]],
         relations=[RelationResponse(**relation_dicts[0])],
@@ -173,7 +231,7 @@ def test_get_concept(controller: GlossaryController) -> None:
 def test_get_concept_not_found(controller: GlossaryController) -> None:
     """Test the GlossaryController get_concept method with a concept not found."""
     concept_iri = "http://example.org/concept"
-    with pytest_raises(HTTPException) as exc_info:
+    with pytest_raises(ConceptNotFoundException) as exc_info:
         controller.get_concept(concept_iri)
     assert exc_info.value.status_code == HTTPStatus.NOT_FOUND
     assert exc_info.value.detail == f"Concept {concept_iri} not found."

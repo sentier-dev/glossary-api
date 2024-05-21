@@ -183,7 +183,11 @@ def test_get_collection(engine: Engine) -> None:
             concept_dicts[1]["iri"],
         ]
     ]
-    collection_dicts = add_collections(engine, member_iri_lists)
+    collection_dicts = add_collections(
+        engine,
+        [concept_scheme_dicts[0]["iri"]],
+        member_iri_lists,
+    )
 
     collection = get_collection(engine, collection_dicts[0]["iri"])
     assert collection is not None

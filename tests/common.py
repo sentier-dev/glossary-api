@@ -56,15 +56,26 @@ def add_concepts(engine: Engine, concept_scheme_iris: list[str]) -> list[dict]:
         return [concept.to_dict() for concept in concepts]
 
 
-def add_collections(engine: Engine, member_iri_lists: list[list[str]]) -> list[dict]:
+def add_collections(
+    engine: Engine,
+    concept_scheme_iris: list[str],
+    member_iri_lists: list[list[str]],
+) -> list[dict]:
     """Add collections to the database."""
-    with Session(engine) as session:
+    with Session(engine, autoflush=False) as session:
         collections = [
             Collection(
                 iri=f"collection_iri{i}",
                 notation=f"notation{i}",
                 prefLabels={"en": f"prefLabel{i}"},
                 member_iris=member_iri_lists[i],
+                concept_schemes=[
+                    (
+                        session.query(ConceptScheme)
+                        .where(ConceptScheme.iri == concept_scheme_iris[i])
+                        .one()
+                    )
+                ],
             )
             for i in range(len(member_iri_lists))
         ]

@@ -1,9 +1,7 @@
 """Routes for the dds_glossary server."""
 
-from http import HTTPStatus
-
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import RedirectResponse
 from fastapi_versioning import version
 from starlette.templating import Jinja2Templates, _TemplateResponse
 
@@ -12,7 +10,9 @@ from .schema import (
     CollectionResponse,
     ConceptResponse,
     ConceptSchemeResponse,
-    FullConeptResponse,
+    EntityResponse,
+    FullConceptResponse,
+    FullConceptSchemeResponse,
     InitDatasetsResponse,
     VersionResponse,
 )
@@ -141,15 +141,15 @@ def get_concept_schemes(
     return controller.get_concept_schemes(lang=lang)
 
 
-@router_versioned.get("/concepts")
+@router_versioned.get("/scheme")
 @version(0, 1)
-def get_concepts(
+def get_concept_scheme(
     concept_scheme_iri: str,
     controller: GlossaryController = Depends(get_controller),
     lang: str = "en",
-) -> JSONResponse:
+) -> FullConceptSchemeResponse:
     """
-    Returns all the saved concepts for a concept scheme.
+    Returns a concept scheme.
 
     Args:
         concept_scheme_iri (str): The concept scheme IRI.
@@ -157,13 +157,31 @@ def get_concepts(
         lang (str): The language. Defaults to "en".
 
     Returns:
-        JSONResponse: The concepts.
+        FullConceptSchemeResponse: The concept scheme with member
+            concepts and collections.
     """
-    return JSONResponse(
-        content={"concepts": controller.get_concepts(concept_scheme_iri, lang=lang)},
-        media_type="application/json",
-        status_code=HTTPStatus.OK,
-    )
+    return controller.get_concept_scheme(concept_scheme_iri, lang=lang)
+
+
+@router_versioned.get("/collections")
+@version(0, 1)
+def get_collections(
+    concept_scheme_iri: str,
+    controller: GlossaryController = Depends(get_controller),
+    lang: str = "en",
+) -> list[EntityResponse]:
+    """
+    Returns all the collections.
+
+    Args:
+        concept_scheme_iri (str): The concept scheme IRI.
+        controller (GlossaryController): The glossary controller.
+        lang (str): The language. Defaults to "en".
+
+    Returns:
+        list[CollectionResponse]: The collections.
+    """
+    return controller.get_collections(concept_scheme_iri, lang=lang)
 
 
 @router_versioned.get("/collection")
@@ -175,14 +193,38 @@ def get_collection(
 ) -> CollectionResponse:
     """
     Returns a collection.
+
     Args:
         collection_iri (str): The collection IRI.
         controller (GlossaryController): The glossary controller.
         lang (str): The language. Defaults to "en".
+
     Returns:
-        JSONResponse: The collection.
+        CollectionResponse: The collection with member collections
+            and concepts.
     """
     return controller.get_collection(collection_iri, lang=lang)
+
+
+@router_versioned.get("/concepts")
+@version(0, 1)
+def get_concepts(
+    concept_scheme_iri: str,
+    controller: GlossaryController = Depends(get_controller),
+    lang: str = "en",
+) -> list[ConceptResponse]:
+    """
+    Returns all the concepts in a concept scheme.
+
+    Args:
+        concept_scheme_iri (str): The concept scheme IRI.
+        controller (GlossaryController): The glossary controller.
+        lang (str): The language. Defaults to "en".
+
+    Returns:
+        list[ConceptResponse]: The concepts.
+    """
+    return controller.get_concepts(concept_scheme_iri, lang=lang)
 
 
 @router_versioned.get("/concept")
@@ -191,7 +233,7 @@ def get_concept(
     concept_iri: str,
     controller: GlossaryController = Depends(get_controller),
     lang: str = "en",
-) -> FullConeptResponse:
+) -> FullConceptResponse:
     """
     Returns a concept.
 
@@ -200,6 +242,6 @@ def get_concept(
         lang (str): The language. Defaults to "en".
 
     Returns:
-        FullConeptResponse: The concept with concept scheme and relations.
+        FullConceptResponse: The concept with concept scheme and relations.
     """
     return controller.get_concept(concept_iri, lang=lang)

@@ -5,17 +5,19 @@ from http import HTTPStatus
 from fastapi.testclient import TestClient
 from pytest import MonkeyPatch
 
-from dds_glossary import __version__
 from dds_glossary.model import Dataset, FailedDataset
-from dds_glossary.schema import InitDatasetsResponse
+from dds_glossary.schema import InitDatasetsResponse, VersionResponse
 
 
-def test_version(client: TestClient) -> None:
+def test_version(
+    client: TestClient,
+    version_response: VersionResponse,
+) -> None:
     """Test the /version endpoint."""
     response = client.get("/latest/version")
     assert response.status_code == HTTPStatus.OK
     assert response.headers["content-type"] == "application/json"
-    assert response.json() == {"version": __version__}
+    assert response.json() == version_response.model_dump()
 
 
 def test_init_datasets_missing_key(client: TestClient) -> None:
@@ -73,10 +75,23 @@ def test_get_concept_schemes_empty(client: TestClient) -> None:
     assert response.headers["content-type"] == "application/json"
 
 
-def test_get_concepts_not_found(client: TestClient) -> None:
-    """Test the /concepts endpoint."""
+def test_get_concept_scheme_not_found(client: TestClient) -> None:
+    """Test the /scheme endpoint."""
     concept_scheme_iri = "iri"
-    response = client.get(f"/latest/concepts?concept_scheme_iri={concept_scheme_iri}")
+    response = client.get(f"/latest/scheme?concept_scheme_iri={concept_scheme_iri}")
+    assert response.json() == {
+        "detail": f"Concept scheme {concept_scheme_iri} not found."
+    }
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.headers["content-type"] == "application/json"
+
+
+def test_get_collections_not_found(client: TestClient) -> None:
+    """Test the /collections endpoint."""
+    concept_scheme_iri = "iri"
+    response = client.get(
+        f"/latest/collections?concept_scheme_iri={concept_scheme_iri}"
+    )
     assert response.json() == {
         "detail": f"Concept scheme {concept_scheme_iri} not found."
     }
@@ -93,7 +108,18 @@ def test_get_collection_not_found(client: TestClient) -> None:
     assert response.headers["content-type"] == "application/json"
 
 
-def test_get_concept(client: TestClient) -> None:
+def test_get_concepts_not_found(client: TestClient) -> None:
+    """Test the /concepts endpoint."""
+    concept_scheme_iri = "iri"
+    response = client.get(f"/latest/concepts?concept_scheme_iri={concept_scheme_iri}")
+    assert response.json() == {
+        "detail": f"Concept scheme {concept_scheme_iri} not found."
+    }
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.headers["content-type"] == "application/json"
+
+
+def test_get_concept_not_found(client: TestClient) -> None:
     """Test the /concept endpoint."""
     concept_iri = "iri"
     response = client.get(f"/latest/concept?concept_iri={concept_iri}")
