@@ -1,6 +1,5 @@
 """Integration test for a fresh start scenario."""
 
-import shutil
 from http import HTTPStatus
 from os import getenv as os_getenv
 from pathlib import Path
@@ -18,13 +17,15 @@ from dds_glossary.schema import (
     InitDatasetsResponse,
     VersionResponse,
 )
-from dds_glossary.services import GlossaryController, get_controller
+from dds_glossary.services import GlossaryController
 
 
 def test_fresh_start(client: TestClient, dir_data: Path) -> None:
     """Test the /fresh_start endpoint."""
-    shutil.copy2(dir_data / "sample.rdf", get_controller().data_dir / "sample.rdf")
-    saved_dataset = Dataset(name="sample.rdf", url="https://example.com/sample.rdf")
+    saved_dataset = Dataset(
+        name="sample.rdf",
+        url=str(dir_data / "sample.rdf"),
+    )
     failed_dataset = FailedDataset(
         name="failed_dataset.rdf",
         url="",
