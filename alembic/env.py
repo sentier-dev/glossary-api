@@ -21,13 +21,8 @@ if config.config_file_name is not None:
 # add your model's MetaData object here
 # for 'autogenerate' support
 target_metadata = Base.metadata
-database_url = os_getenv(
-    "DATABASE_URL",
-    config.get_main_option(
-        "sqlalchemy.url",
-        "postgresql+psycopg://user:pass@localhost:5432/dbname",
-    ),
-)
+from dds_glossary.database import DATABASE_URL
+config.set_main_option("sqlalchemy.url", DATABASE_URL)
 
 
 # other values from the config, defined by the needs of env.py,
@@ -49,7 +44,7 @@ def run_migrations_offline() -> None:
 
     """
     context.configure(  # pylint: disable=no-member
-        url=database_url,
+        url=config.get_main_option("sqlalchemy.url"),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
