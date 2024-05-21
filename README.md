@@ -23,6 +23,58 @@
 
 Sustainability assessment classifications glossary.
 
+## Shell Utilities for `dds_glossary`
+
+`tasks.py` provides shell utilities for the `dds_glossary` project, utilizing `invoke` for task execution. Below are the tasks available:
+
+### Clean Task
+Cleans up the project directory by removing specified files and directories.
+
+#### Usage
+```sh
+invoke clean [--bytecode] [--pytest] [--mypy] [--extra <extra_patterns>]
+```
+
+#### Options
+- `bytecode` `"-b"`: Cleans up compiled Python files.
+- `pytest` `"-p"`: Cleans up pytest cache and coverage files.
+- `mypy` `"-m"`: Cleans up mypy cache files.
+- `extra` `"-e"`: Specifies additional directories or files to clean up.
+
+### Install Task
+Installs the project with optional modes and dependencies.
+
+#### Usage
+```sh
+invoke install [--editable] [--testing] [--dev] [--report]
+```
+
+#### Options
+- `editable` `"-e"`: Installs the project in editable mode.
+- `testing` `"-t"`: Installs test dependencies.
+- `dev` `"-d"`: Installs development dependencies.
+- `report` `"-r"`: Displays the command output.
+
+### Precommit Task
+Runs pre-commit checks to ensure code quality and consistency.
+
+#### Usage
+```sh
+invoke precommit
+```
+
+### Test Task
+Runs unit and integration tests for the project.
+
+#### Usage
+```sh
+invoke test [--integration] [--report]
+```
+
+#### Options
+- `integration` `"-i"`: Runs integration tests.
+- `report` `"-r"`: Displays the command output.
+
 ## Contributing
 
 Contributions are very welcome.

@@ -60,6 +60,7 @@ dev = [
     "alembic",
     "build",
     "httpx",
+    "invoke",
     "mypy",
     "pre-commit",
     "pylint",
