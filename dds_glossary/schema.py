@@ -90,12 +90,12 @@ class ConceptResponse(EntityResponse):
     Attributes:
         identifier (str): The identifier of the concept.
         scopeNote (str): The scope note of the concept.
-        altLabel (str): The alternative label of the concept.
+        altLabels (list[str[]): The alternative labels of the concept.
     """
 
     identifier: str
     scopeNote: str
-    altLabel: str
+    altLabels: list[str]
 
 
 class FullConeptResponse(ConceptResponse):
