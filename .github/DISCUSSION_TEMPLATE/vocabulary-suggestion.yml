@@ -6,12 +6,12 @@ body:
     attributes:
       label: Vocabulary name
       description: "What is the full name of this vocabulary"
-      value:
+      value: |
         ...
     validations:
       required: true
   - type: input
-    id: url
+    id: homepage
     attributes:
       label: Vocabulary Homepage URL
       description: "Provide the URL to the vocabulary homepage"
@@ -20,7 +20,7 @@ body:
     validations:
       required: true
   - type: input
-    id: url
+    id: data_source_url
     attributes:
       label: Vocabulary Data Source URL
       description: "Provide the URL to get data source"
@@ -33,7 +33,6 @@ body:
     attributes:
       label: Justify this Vocabulary Choice
       description: "Justify the choice of this specific vocabulary. Ideally, provide a link to a discussion on missing terms. Include alternatives where applicable. Include factors like community acceptance, update frequency, coverage, and easy of use."
-      placeholder: ""
     validations:
       required: true
   - type: textarea
