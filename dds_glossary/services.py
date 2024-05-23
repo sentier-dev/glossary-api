@@ -81,6 +81,8 @@ class GlossaryController:
             ),
         ),
         Dataset(name="ISIC4.rdf", url=fao_url + "ISICRev4/ISIC4.rdf"),
+        Dataset(name="ICC11.rdf", url=fao_url + "ICCv1.1/ICC11.rdf"),
+        Dataset(name="WCACROPS-core.rdf", url=fao_url + "WCA2020Crops/WCACROPS.rdf"),
     ]
 
     def __init__(
