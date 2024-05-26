@@ -15,13 +15,8 @@ from dds_glossary.database import (
     save_dataset,
     search_database,
 )
-from dds_glossary.model import (
-    Collection,
-    Concept,
-    ConceptScheme,
-    SemanticRelation,
-    SemanticRelationType,
-)
+from dds_glossary.enums import SemanticRelationType
+from dds_glossary.model import Collection, Concept, ConceptScheme, SemanticRelation
 
 from ..common import add_collections, add_concept_schemes, add_concepts, add_relations
 

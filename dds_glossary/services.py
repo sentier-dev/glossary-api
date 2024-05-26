@@ -20,6 +20,7 @@ from .database import (
     save_dataset,
     search_database,
 )
+from .enums import MemberType
 from .exceptions import (
     CollectionNotFoundException,
     ConceptNotFoundException,
@@ -32,7 +33,6 @@ from .model import (
     Dataset,
     FailedDataset,
     Member,
-    MemberType,
     SemanticRelation,
 )
 from .schema import (

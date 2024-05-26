@@ -3,13 +3,13 @@
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
+from dds_glossary.enums import SemanticRelationType
 from dds_glossary.model import (
     Collection,
     Concept,
     ConceptScheme,
     Member,
     SemanticRelation,
-    SemanticRelationType,
 )
 
 

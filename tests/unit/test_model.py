@@ -1,12 +1,12 @@
 """Tests for dds_glossary.model module."""
 
+from dds_glossary.enums import SemanticRelationType
 from dds_glossary.model import (
     Base,
     Collection,
     Concept,
     ConceptScheme,
     SemanticRelation,
-    SemanticRelationType,
 )
 
 
