@@ -3,10 +3,9 @@
 from abc import abstractmethod
 from typing import ClassVar
 
-from sqlalchemy import Column, ForeignKey, String, Table
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, Relationship, mapped_column
-from sqlmodel import SQLModel
+from sqlmodel import Column, ForeignKey, SQLModel, String, Table
 
 from .enums import MemberType, SemanticRelationType
 from .xml import (
