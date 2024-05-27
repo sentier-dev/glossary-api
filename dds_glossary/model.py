@@ -3,10 +3,10 @@
 from abc import abstractmethod
 from typing import ClassVar
 
-from pydantic import BaseModel
 from sqlalchemy import Column, ForeignKey, String, Table
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import DeclarativeBase, Mapped, Relationship, mapped_column
+from sqlmodel import SQLModel
 
 from .enums import MemberType, SemanticRelationType
 from .xml import (
@@ -18,7 +18,7 @@ from .xml import (
 )
 
 
-class Dataset(BaseModel):
+class Dataset(SQLModel):
     """
     Base class for the datasets.
 
@@ -124,12 +124,11 @@ class ConceptScheme(Base):
     __tablename__ = "concept_schemes"
 
     iri: Mapped[str] = mapped_column(primary_key=True)
-    notation: Mapped[str] = mapped_column()
-    scopeNote: Mapped[str] = mapped_column()
-    prefLabels: Mapped[dict[str, str]] = mapped_column()
+    notation: Mapped[str]
+    scopeNote: Mapped[str]
+    prefLabels: Mapped[dict[str, str]]
 
-    members: Mapped[list["Member"]] = relationship(
-        "Member",
+    members: Mapped[list["Member"]] = Relationship(
         secondary="in_scheme",
         back_populates="concept_schemes",
     )
@@ -190,22 +189,20 @@ class Member(Base):
     __tablename__ = "collection_members"
 
     iri: Mapped[str] = mapped_column(primary_key=True)
-    notation: Mapped[str] = mapped_column()
-    prefLabels: Mapped[dict[str, str]] = mapped_column()
-    member_type: Mapped[MemberType] = mapped_column()
+    notation: Mapped[str]
+    prefLabels: Mapped[dict[str, str]]
+    member_type: Mapped[MemberType]
 
     __mapper_args__ = {
         "polymorphic_identity": MemberType.COLLECTION_MEMBER,
         "polymorphic_on": "member_type",
     }
 
-    concept_schemes: Mapped[list[ConceptScheme]] = relationship(
-        "ConceptScheme",
+    concept_schemes: Mapped[list[ConceptScheme]] = Relationship(
         secondary="in_scheme",
         back_populates="members",
     )
-    collections: Mapped[list["Collection"]] = relationship(
-        "Collection",
+    collections: Mapped[list["Collection"]] = Relationship(
         secondary="in_collection",
         back_populates="members",
     )
@@ -270,8 +267,7 @@ class Collection(Member):
     iri: Mapped[str] = mapped_column(ForeignKey(Member.iri), primary_key=True)
     member_iris: list[str] = []
 
-    members: Mapped[list[Member]] = relationship(
-        "Member",
+    members: Mapped[list[Member]] = Relationship(
         secondary="in_collection",
         back_populates="collections",
     )
@@ -348,9 +344,9 @@ class Concept(Member):
     __tablename__ = "concepts"
 
     iri: Mapped[str] = mapped_column(ForeignKey(Member.iri), primary_key=True)
-    identifier: Mapped[str] = mapped_column()
-    altLabels: Mapped[dict[str, list[str]]] = mapped_column()
-    scopeNotes: Mapped[dict[str, str]] = mapped_column()
+    identifier: Mapped[str]
+    altLabels: Mapped[dict[str, list[str]]]
+    scopeNotes: Mapped[dict[str, str]]
 
     __mapper_args__ = {
         "polymorphic_identity": MemberType.CONCEPT,
@@ -459,7 +455,7 @@ class SemanticRelation(Base):
 
     __tablename__ = "semantic_relations"
 
-    type: Mapped[SemanticRelationType] = mapped_column()
+    type: Mapped[SemanticRelationType]
 
     source_concept_iri: Mapped[str] = mapped_column(
         ForeignKey(Concept.iri),
@@ -469,8 +465,8 @@ class SemanticRelation(Base):
         ForeignKey(Concept.iri),
         primary_key=True,
     )
-    source_concept: Mapped["Concept"] = relationship(foreign_keys=[source_concept_iri])
-    target_concept: Mapped["Concept"] = relationship(foreign_keys=[target_concept_iri])
+    source_concept: Mapped[Concept] = Relationship(foreign_keys=[source_concept_iri])
+    target_concept: Mapped[Concept] = Relationship(foreign_keys=[target_concept_iri])
 
     @classmethod
     def from_xml_element(cls, element) -> list["SemanticRelation"]:
