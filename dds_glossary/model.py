@@ -1,20 +1,14 @@
 """Model classes for the dds_glossary package."""
 
 from abc import abstractmethod
+from dataclasses import dataclass, field
 from typing import ClassVar
 
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, Relationship, mapped_column
-from sqlmodel import Column, ForeignKey, SQLModel, String, Table
+from sqlmodel import ForeignKey, SQLModel
 
 from .enums import MemberType, SemanticRelationType
-from .xml import (
-    get_element_attribute,
-    get_sub_element_as_str,
-    get_sub_element_attributes,
-    get_sub_elements_as_dict,
-    get_sub_elements_as_dict_of_lists,
-)
 
 
 class Dataset(SQLModel):
@@ -39,6 +33,29 @@ class FailedDataset(Dataset):
     """
 
     error: str
+
+
+@dataclass
+class ParsedDataset:
+    """
+    Class for the parsed datasets.
+
+    Attributes:
+        concept_schemes (list[ConceptScheme]): The concept schemes of the dataset.
+        concepts (list[Concept]): The concepts of the dataset.
+        collections (list[Collection]): The collections of the dataset.
+        semantic_relations (list[SemanticRelation]): The semantic relations of the
+            dataset.
+        in_schemes (list[InScheme]): The in schemes of the dataset.
+        in_collections (list[InCollection]): The in collections of the dataset.
+    """
+
+    concept_schemes: list["ConceptScheme"] = field(default_factory=list)
+    concepts: list["Concept"] = field(default_factory=list)
+    collections: list["Collection"] = field(default_factory=list)
+    semantic_relations: list["SemanticRelation"] = field(default_factory=list)
+    in_schemes: list["InScheme"] = field(default_factory=list)
+    in_collections: list["InCollection"] = field(default_factory=list)
 
 
 class Base(DeclarativeBase):
@@ -132,24 +149,6 @@ class ConceptScheme(Base):
         back_populates="concept_schemes",
     )
 
-    @classmethod
-    def from_xml_element(cls, element) -> "ConceptScheme":
-        """
-        Return a ConceptScheme instance from an XML element.
-
-        Args:
-            element (ElementBase): The XML element to parse.
-
-        Returns:
-            ConceptScheme: The parsed ConceptScheme instance.
-        """
-        return ConceptScheme(
-            iri=get_element_attribute(element, "about"),
-            notation=get_sub_element_as_str(element, "core:notation"),
-            scopeNote=get_sub_element_as_str(element, "core:scopeNote"),
-            prefLabels=get_sub_elements_as_dict(element, "core:prefLabel"),
-        )
-
     def to_dict(self, lang: str = "en") -> dict:
         """
         Return the ConceptScheme instance as a dictionary.
@@ -206,30 +205,6 @@ class Member(Base):
         back_populates="members",
     )
 
-    @classmethod
-    def get_concept_schemes(
-        cls,
-        element,
-        concept_schemes: list[ConceptScheme],
-    ) -> list[ConceptScheme]:
-        """
-        Get the concept schemes to which the member belongs.
-
-        Args:
-            element (ElementBase): The XML element to parse.
-            concept_schemes (list[ConceptScheme]): The concept schemes to which the
-                member belongs.
-
-        Returns:
-            list[ConceptScheme]: The concept schemes to which the member belongs.
-        """
-        scheme_iris = get_sub_element_attributes(element, "core:inScheme", "resource")
-        return [
-            concept_scheme
-            for concept_scheme in concept_schemes
-            if concept_scheme.iri in scheme_iris
-        ]
-
     def to_dict(self, lang: str = "en") -> dict:
         """
         Return the Member instance as a dictionary.
@@ -264,7 +239,6 @@ class Collection(Member):
     __tablename__ = "collections"
 
     iri: Mapped[str] = mapped_column(ForeignKey(Member.iri), primary_key=True)
-    member_iris: list[str] = []
 
     members: Mapped[list[Member]] = Relationship(
         secondary="in_collection",
@@ -274,41 +248,6 @@ class Collection(Member):
     __mapper_args__ = {
         "polymorphic_identity": MemberType.COLLECTION,
     }
-
-    @classmethod
-    def from_xml_element(
-        cls,
-        element,
-        concept_schemes: list[ConceptScheme],
-    ) -> "Collection":
-        """
-        Return a Collection instance from an XML element.
-
-        Args:
-            element (ElementBase): The XML element to parse.
-
-        Returns:
-            Collection: The parsed Collection instance.
-        """
-        return Collection(
-            iri=get_element_attribute(element, "about"),
-            notation=get_sub_element_as_str(element, "core:notation"),
-            prefLabels=get_sub_elements_as_dict(element, "core:prefLabel"),
-            concept_schemes=cls.get_concept_schemes(element, concept_schemes),
-            member_iris=get_sub_element_attributes(element, "core:member", "resource"),
-        )
-
-    def resolve_members_from_xml(self, members: list[Member]) -> None:
-        """
-        Resolve the collections members from an xml element.
-
-        Args:
-            members (list[Member]): The list of all available members.
-
-        Returns:
-            None
-        """
-        self.members = [member for member in members if member.iri in self.member_iris]
 
 
 class Concept(Member):
@@ -350,33 +289,6 @@ class Concept(Member):
     __mapper_args__ = {
         "polymorphic_identity": MemberType.CONCEPT,
     }
-
-    @classmethod
-    def from_xml_element(
-        cls,
-        element,
-        concept_schemes: list[ConceptScheme],
-    ) -> "Concept":
-        """
-        Return a Concept instance from an XML element.
-
-        Args:
-            element (ElementBase): The XML element to parse.
-            concept_schemes (ConceptScheme): The concept schemes to which the concept
-                belongs.
-
-        Returns:
-            Concept: The parsed Concept instance.
-        """
-        return Concept(
-            iri=get_element_attribute(element, "about"),
-            identifier=get_sub_element_as_str(element, "x_1.1:identifier"),
-            notation=get_sub_element_as_str(element, "core:notation"),
-            prefLabels=get_sub_elements_as_dict(element, "core:prefLabel"),
-            altLabels=get_sub_elements_as_dict_of_lists(element, "core:altLabel"),
-            scopeNotes=get_sub_elements_as_dict(element, "core:scopeNote"),
-            concept_schemes=cls.get_concept_schemes(element, concept_schemes),
-        )
 
     def to_dict(self, lang: str = "en") -> dict:
         """
@@ -467,32 +379,6 @@ class SemanticRelation(Base):
     source_concept: Mapped[Concept] = Relationship(foreign_keys=[source_concept_iri])
     target_concept: Mapped[Concept] = Relationship(foreign_keys=[target_concept_iri])
 
-    @classmethod
-    def from_xml_element(cls, element) -> list["SemanticRelation"]:
-        """
-        Return a list of SemanticRelation instances from an XML element.
-
-        Args:
-            element (ElementBase): The XML element to parse.
-
-        Returns:
-            list[SemanticRelation]: The parsed list of SemanticRelation instances.
-        """
-        relations: dict[SemanticRelationType, list[str]] = {}
-        for relation_type in SemanticRelationType:
-            relations[relation_type] = get_sub_element_attributes(
-                element, f"core:{relation_type.value}", "resource"
-            )
-        return [
-            SemanticRelation(
-                type=relation_type,
-                source_concept_iri=get_element_attribute(element, "about"),
-                target_concept_iri=target_concept_iri,
-            )
-            for relation_type, target_concept_iris in relations.items()
-            for target_concept_iri in target_concept_iris
-        ]
-
     def to_dict(self) -> dict:
         """
         Return the SemanticRelation instance as a dictionary.
@@ -507,17 +393,69 @@ class SemanticRelation(Base):
         }
 
 
-in_scheme = Table(
-    "in_scheme",
-    Base.metadata,
-    Column("scheme_iri", String, ForeignKey(ConceptScheme.iri), primary_key=True),
-    Column("member_iri", String, ForeignKey(Member.iri), primary_key=True),
-)
+class InScheme(Base):
+    """
+    Association table for the concept schemes and the members.
+
+    Attributes:
+        scheme_iri (str): The Internationalized Resource Identifier of the concept
+            scheme.
+        member_iri (str): The Internationalized Resource Identifier of the member.
+    """
+
+    __tablename__ = "in_scheme"
+
+    scheme_iri: Mapped[str] = mapped_column(
+        ForeignKey(ConceptScheme.iri),
+        primary_key=True,
+    )
+    member_iri: Mapped[str] = mapped_column(
+        ForeignKey(Member.iri),
+        primary_key=True,
+    )
+
+    def to_dict(self) -> dict:
+        """
+        Return the InScheme instance as a dictionary.
+
+        Returns:
+            dict: The InScheme instance as a dictionary.
+        """
+        return {
+            "scheme_iri": self.scheme_iri,
+            "member_iri": self.member_iri,
+        }
 
 
-in_collection = Table(
-    "in_collection",
-    Base.metadata,
-    Column("collection_iri", String, ForeignKey(Collection.iri), primary_key=True),
-    Column("member_iri", String, ForeignKey(Member.iri), primary_key=True),
-)
+class InCollection(Base):
+    """
+    Association table for the collections and the members.
+
+    Attributes:
+        collection_iri (str): The Internationalized Resource Identifier of the
+            collection.
+        member_iri (str): The Internationalized Resource Identifier of the member.
+    """
+
+    __tablename__ = "in_collection"
+
+    collection_iri: Mapped[str] = mapped_column(
+        ForeignKey(Collection.iri),
+        primary_key=True,
+    )
+    member_iri: Mapped[str] = mapped_column(
+        ForeignKey(Member.iri),
+        primary_key=True,
+    )
+
+    def to_dict(self) -> dict:
+        """
+        Return the InCollection instance as a dictionary.
+
+        Returns:
+            dict: The InCollection instance as a dictionary.
+        """
+        return {
+            "collection_iri": self.collection_iri,
+            "member_iri": self.member_iri,
+        }

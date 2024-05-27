@@ -68,7 +68,6 @@ def add_collections(
                 iri=f"collection_iri{i}",
                 notation=f"notation{i}",
                 prefLabels={"en": f"prefLabel{i}"},
-                member_iris=member_iri_lists[i],
                 concept_schemes=[
                     (
                         session.query(ConceptScheme)
@@ -80,8 +79,12 @@ def add_collections(
             for i in range(len(member_iri_lists))
         ]
         session.add_all(collections)
-        for collection in collections:
-            collection.resolve_members_from_xml(session.query(Member).all())
+        session.commit()
+        for i, member_iri_list in enumerate(member_iri_lists):
+            collections[i].members = [
+                session.query(Member).where(Member.iri == member_iri).one()
+                for member_iri in member_iri_list
+            ]
         session.commit()
         return [collection.to_dict() for collection in collections]
 
