@@ -1,7 +1,6 @@
 """Model classes for the dds_glossary package."""
 
 from abc import abstractmethod
-from collections import defaultdict
 from typing import ClassVar
 
 from pydantic import BaseModel
@@ -10,6 +9,13 @@ from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 from .enums import MemberType, SemanticRelationType
+from .xml import (
+    get_element_attribute,
+    get_sub_element_as_str,
+    get_sub_element_attributes,
+    get_sub_elements_as_dict,
+    get_sub_elements_as_dict_of_lists,
+)
 
 
 class Dataset(BaseModel):
@@ -43,27 +49,9 @@ class Base(DeclarativeBase):
         dict[str, str]: JSONB,
         dict[str, list[str]]: JSONB,
     }
-    xml_namespace: ClassVar[str] = "{http://www.w3.org/XML/1998/namespace}"
 
     def __eq__(self, other: object) -> bool:
         return self.to_dict() == other.to_dict()  # type: ignore
-
-    @staticmethod
-    def get_sub_element_text(element, tag: str, default_value: str = "") -> str:
-        """
-        Get a sub element text from the XML element if tag exists, else return
-        default_value.
-
-        Args:
-            element (ElementBase): The XML element to parse.
-            tag (str): The tag to search for.
-            default_value (str): The default value to return if the tag does not exist.
-
-        Returns:
-            str: The sub element text if the tag exists, else the default value.
-        """
-        sub_element = element.find(tag, namespaces=element.nsmap)
-        return sub_element.text if sub_element is not None else default_value
 
     @staticmethod
     def get_in_language(attribute: dict, lang: str = "en") -> str:
@@ -158,13 +146,10 @@ class ConceptScheme(Base):
             ConceptScheme: The parsed ConceptScheme instance.
         """
         return ConceptScheme(
-            iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
-            notation=cls.get_sub_element_text(element, "core:notation"),
-            scopeNote=cls.get_sub_element_text(element, "core:scopeNote"),
-            prefLabels={
-                label.get(f"{cls.xml_namespace}lang"): label.text
-                for label in element.findall("core:prefLabel", namespaces=element.nsmap)
-            },
+            iri=get_element_attribute(element, "about"),
+            notation=get_sub_element_as_str(element, "core:notation"),
+            scopeNote=get_sub_element_as_str(element, "core:scopeNote"),
+            prefLabels=get_sub_elements_as_dict(element, "core:prefLabel"),
         )
 
     def to_dict(self, lang: str = "en") -> dict:
@@ -242,12 +227,7 @@ class Member(Base):
         Returns:
             list[ConceptScheme]: The concept schemes to which the member belongs.
         """
-        scheme_iris = [
-            scheme_element.get(f"{{{element.nsmap['rdf']}}}resource")
-            for scheme_element in element.findall(
-                "core:inScheme", namespaces=element.nsmap
-            )
-        ]
+        scheme_iris = get_sub_element_attributes(element, "core:inScheme", "resource")
         return [
             concept_scheme
             for concept_scheme in concept_schemes
@@ -316,17 +296,11 @@ class Collection(Member):
             Collection: The parsed Collection instance.
         """
         return Collection(
-            iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
-            notation=cls.get_sub_element_text(element, "core:notation"),
-            prefLabels={
-                label.get(f"{cls.xml_namespace}lang"): label.text
-                for label in element.findall("core:prefLabel", namespaces=element.nsmap)
-            },
+            iri=get_element_attribute(element, "about"),
+            notation=get_sub_element_as_str(element, "core:notation"),
+            prefLabels=get_sub_elements_as_dict(element, "core:prefLabel"),
             concept_schemes=cls.get_concept_schemes(element, concept_schemes),
-            member_iris=[
-                member.get(f"{{{element.nsmap['rdf']}}}resource")
-                for member in element.findall("core:member", namespaces=element.nsmap)
-            ],
+            member_iris=get_sub_element_attributes(element, "core:member", "resource"),
         )
 
     def resolve_members_from_xml(self, members: list[Member]) -> None:
@@ -399,22 +373,13 @@ class Concept(Member):
         Returns:
             Concept: The parsed Concept instance.
         """
-        alt_labels = defaultdict(list)
-        for label in element.findall("core:altLabel", namespaces=element.nsmap):
-            alt_labels[label.get(f"{cls.xml_namespace}lang")].append(label.text)
         return Concept(
-            iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
-            identifier=cls.get_sub_element_text(element, "x_1.1:identifier"),
-            notation=cls.get_sub_element_text(element, "core:notation"),
-            prefLabels={
-                label.get(f"{cls.xml_namespace}lang"): label.text
-                for label in element.findall("core:prefLabel", namespaces=element.nsmap)
-            },
-            altLabels=alt_labels,
-            scopeNotes={
-                note.get(f"{cls.xml_namespace}lang"): note.text
-                for note in element.findall("core:scopeNote", namespaces=element.nsmap)
-            },
+            iri=get_element_attribute(element, "about"),
+            identifier=get_sub_element_as_str(element, "x_1.1:identifier"),
+            notation=get_sub_element_as_str(element, "core:notation"),
+            prefLabels=get_sub_elements_as_dict(element, "core:prefLabel"),
+            altLabels=get_sub_elements_as_dict_of_lists(element, "core:altLabel"),
+            scopeNotes=get_sub_elements_as_dict(element, "core:scopeNote"),
             concept_schemes=cls.get_concept_schemes(element, concept_schemes),
         )
 
@@ -518,16 +483,19 @@ class SemanticRelation(Base):
         Returns:
             list[SemanticRelation]: The parsed list of SemanticRelation instances.
         """
+        relations: dict[SemanticRelationType, list[str]] = {}
+        for relation_type in SemanticRelationType:
+            relations[relation_type] = get_sub_element_attributes(
+                element, f"core:{relation_type.value}", "resource"
+            )
         return [
             SemanticRelation(
                 type=relation_type,
-                source_concept_iri=element.get(f"{{{element.nsmap['rdf']}}}about"),
-                target_concept_iri=relation.get(f"{{{element.nsmap['rdf']}}}resource"),
+                source_concept_iri=get_element_attribute(element, "about"),
+                target_concept_iri=target_concept_iri,
             )
-            for relation_type in SemanticRelationType
-            for relation in element.findall(
-                f"core:{relation_type.value}", namespaces=element.nsmap
-            )
+            for relation_type, target_concept_iris in relations.items()
+            for target_concept_iri in target_concept_iris
         ]
 
     def to_dict(self) -> dict:
