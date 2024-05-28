@@ -27,7 +27,7 @@
         </form>
         {% for concept in concepts %}
         <h3>
-            <a href="/concept?concept_iri={{ concept.iri }}">prefLabel: {{ concept.prefLabel }}</a>
+            <a href="/latest/concept?concept_iri={{ concept.iri }}">prefLabel: {{ concept.prefLabel }}</a>
         </h3>
         <p>iri: {{ concept.iri }}</p>
         <p>notation: {{ concept.notation }}</p>
