@@ -33,12 +33,13 @@ def init_engine(
     database_url = database_url or get_settings().DATABASE_URL.get_secret_value()
     engine = create_engine(database_url)
 
-    if not database_exists(engine.url):
-        create_database(engine.url)
-    elif drop_database_flag:
+    if database_exists(engine.url):
+        if not drop_database_flag:
+            return engine
         drop_database(engine.url)
-        create_database(engine.url)
+        engine.dispose()
 
+    create_database(engine.url)
     Base.metadata.create_all(engine)
     return engine
 
