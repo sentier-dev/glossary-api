@@ -11,7 +11,7 @@ class Settings(BaseSettings):
 
     API_KEY: SecretStr
     DATABASE_URL: SecretStr
-    SENTRY_DSN: SecretStr
+    SENTRY_DSN: SecretStr = SecretStr("")
 
     HOST_IP: str = "127.0.0.1"
 
