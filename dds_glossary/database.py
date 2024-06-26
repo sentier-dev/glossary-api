@@ -13,6 +13,9 @@ from .model import Base, Collection, Concept, ConceptScheme, Member, SemanticRel
 def init_engine(
     database_url: str | None = None,
     drop_database_flag: bool = False,
+    pool_recycle: int = 3600,
+    pool_size: int = 10,
+    max_overflow: int = 20,
 ) -> Engine:
     """
     Initialize the database engine. If the database does not exist, create it.
@@ -23,6 +26,12 @@ def init_engine(
         database_url (str, optional): The database URL. If None, use the
             `DATABASE_URL` environment variable.
         drop_database_flag (bool): Flag to drop the database if it exists.
+        pool_recycle (int, optional): The number of seconds after which a connection
+            is automatically recycled. Defaults to 3600.
+        pool_size (int, optional): The number of connections to keep open inside the
+            connection pool. Defaults to 10.
+        max_overflow (int, optional): The number of connections to allow that can
+            exceed the pool_size. Defaults to 20.
 
     Returns:
         Engine: The database engine.
@@ -35,14 +44,20 @@ def init_engine(
         database_url = os_getenv("DATABASE_URL")
     if not database_url:
         raise ValueError("DATABASE_URL environment variable is not set.")
-    engine = create_engine(database_url)
+    engine = create_engine(
+        database_url,
+        pool_recycle=pool_recycle,
+        pool_size=pool_size,
+        max_overflow=max_overflow,
+    )
 
-    if not database_exists(engine.url):
-        create_database(engine.url)
-    elif drop_database_flag:
+    if database_exists(engine.url):
+        if not drop_database_flag:
+            return engine
         drop_database(engine.url)
-        create_database(engine.url)
+        engine.dispose()
 
+    create_database(engine.url)
     Base.metadata.create_all(engine)
     return engine
 
