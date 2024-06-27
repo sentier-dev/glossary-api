@@ -4,6 +4,8 @@
     "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
     "owl": "http://www.w3.org/2002/07/owl#",
     "skos": "https://www.w3.org/TR/skos-reference/",
+    "dcterms": "http://purl.org/dc/terms/",
+    "schema": "https://schema.org/",
     "sentier": "https://oo-ld.github.io/glossary-api/",
     "type": "@type",
     "iri": "@id",
@@ -14,7 +16,17 @@
         "lang": "@language"
       }
     },
-    "documentation": "rdfs:seeAlso"
+    "version": "owl:versionInfo",
+    "previous_version": "owl:priorVersion",
+    "documentation": "rdfs:seeAlso",
+    "source": "rdfs:isDefinedBy",
+    "licence": "dcterms:license",
+    "authors": {
+      "@id": "dcterms:creator",
+      "@context": {
+        "name": "schema:name"
+      }
+    }
   },
   "title": "Entity",
   "type": "object",
@@ -64,9 +76,47 @@
       ],
       "minItems": 1
     },
+    "version": {
+      "type": "string",
+      "title": "version",
+      "default": "1.0.0"
+    },
+    "previous_version": {
+      "type": "string",
+      "title": "Previous Version IRI"
+    },
     "documentation": {
       "type": "string",
       "title": "Documentation"
+    },
+    "source": {
+      "type": "string",
+      "title": "Source / external definition"
+    },
+    "licence": {
+      "type": "string",
+      "enum": [
+        "https://creativecommons.org/public-domain/cc0/",
+        "https://creativecommons.org/licenses/by/4.0/"
+      ],
+      "options": {
+        "enum_titles": [
+          "CC0",
+          "CC-BY"
+        ]
+      }
+    },
+    "authors": {
+      "type": "array",
+      "format": "table",
+      "title": "Authors",
+      "items": {
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        }
+      }
     }
   }
 }
