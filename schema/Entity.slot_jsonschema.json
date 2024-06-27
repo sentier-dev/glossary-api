@@ -1,0 +1,72 @@
+{
+  "@context": {
+    "rdf": "http://www.w3.org/1999/02/22-rdf-syntax-ns#",
+    "rdfs": "http://www.w3.org/2000/01/rdf-schema#",
+    "owl": "http://www.w3.org/2002/07/owl#",
+    "skos": "https://www.w3.org/TR/skos-reference/",
+    "sentier": "https://oo-ld.github.io/glossary-api/",
+    "type": "@type",
+    "iri": "@id",
+    "labels": {
+      "@id": "skos:prefLabel",
+      "@context": {
+        "text": "@value",
+        "lang": "@language"
+      }
+    },
+    "documentation": "rdfs:seeAlso"
+  },
+  "title": "Entity",
+  "type": "object",
+  "required": [
+    "labels"
+  ],
+  "properties": {
+    "type": {
+      "type": "string",
+      "default": "sentier:Entity"
+    },
+    "iri": {
+      "type": "string",
+      "title": "IRI"
+    },
+    "labels": {
+      "type": "array",
+      "format": "table",
+      "title": "Label(s)",
+      "description": "Label(s) of the entity",
+      "items": {
+        "type": "object",
+        "title": "Label",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minlength": 1
+          },
+          "lang": {
+            "type": "string",
+            "enum": [
+              "en",
+              "de",
+              "fr"
+            ],
+            "options": {
+              "input_width": "100px"
+            }
+          }
+        }
+      },
+      "default": [
+        {
+          "text": "Unnamed",
+          "lang": "en"
+        }
+      ],
+      "minItems": 1
+    },
+    "documentation": {
+      "type": "string",
+      "title": "Documentation"
+    }
+  }
+}
