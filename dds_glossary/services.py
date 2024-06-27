@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import ClassVar
 
 from appdirs import user_data_dir
-from defusedxml.lxml import parse as parse_xml
 from fastapi.templating import Jinja2Templates
 from owlready2 import get_ontology, onto_path
 from sqlalchemy import Engine
@@ -26,15 +25,7 @@ from .exceptions import (
     ConceptNotFoundException,
     ConceptSchemeNotFoundException,
 )
-from .model import (
-    Collection,
-    Concept,
-    ConceptScheme,
-    Dataset,
-    FailedDataset,
-    Member,
-    SemanticRelation,
-)
+from .model import Dataset, FailedDataset, Member
 from .schema import (
     CollectionResponse,
     ConceptResponse,
@@ -45,6 +36,7 @@ from .schema import (
     InitDatasetsResponse,
     RelationResponse,
 )
+from .xml import parse_dataset
 
 
 class GlossaryController:
@@ -118,49 +110,6 @@ class GlossaryController:
         """
         return [member for member in members if member.member_type == member_type]
 
-    def parse_dataset(
-        self,
-        dataset_path: Path,
-    ) -> tuple[
-        list[ConceptScheme],
-        list[Concept],
-        list[Collection],
-        list[SemanticRelation],
-    ]:
-        """
-        Parse a dataset.
-
-        Args:
-            dataset_path (Path): The dataset path.
-
-        Returns:
-            tuple[list[ConceptScheme], list[Concept], list[Collection],
-                list[SemanticRelation]]: The concept schemes, concepts, collections,
-                and semantic relations.
-        """
-        root = parse_xml(dataset_path).getroot()
-        concept_scheme_elements = root.findall("core:ConceptScheme", root.nsmap)
-        collection_elements = root.findall("core:Collection", root.nsmap)
-        concept_elements = root.findall("core:Concept", root.nsmap)
-        concept_schemes = [
-            ConceptScheme.from_xml_element(concept_scheme_element)
-            for concept_scheme_element in concept_scheme_elements
-        ]
-        concepts = [
-            Concept.from_xml_element(concept_element, concept_schemes)
-            for concept_element in concept_elements
-        ]
-        collections = [
-            Collection.from_xml_element(collection_element, concept_schemes)
-            for collection_element in collection_elements
-        ]
-        semantic_relations: list[SemanticRelation] = []
-        for concept_element in concept_elements:
-            semantic_relations.extend(
-                SemanticRelation.from_xml_element(concept_element)
-            )
-        return concept_schemes, concepts, collections, semantic_relations
-
     def init_datasets(
         self,
         reload: bool = False,
@@ -183,7 +132,7 @@ class GlossaryController:
             try:
                 ontology = get_ontology(dataset.url).load(reload=reload)
                 ontology.save(file=str(dataset_path), format="rdfxml")
-                save_dataset(self.engine, *self.parse_dataset(dataset_path))
+                save_dataset(self.engine, parse_dataset(dataset_path))
                 saved_datasets.append(
                     Dataset(
                         name=dataset.name,

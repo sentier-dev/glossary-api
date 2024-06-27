@@ -3,7 +3,6 @@
 from http import HTTPStatus
 from pathlib import Path
 
-from pytest import MonkeyPatch
 from pytest import raises as pytest_raises
 
 from dds_glossary.exceptions import (
@@ -21,51 +20,16 @@ from dds_glossary.schema import (
     RelationResponse,
 )
 from dds_glossary.services import GlossaryController
+from dds_glossary.xml import parse_dataset
 
 from ..common import add_collections, add_concept_schemes, add_concepts, add_relations
 
 
-def _init_datasets(_monkeypatch: MonkeyPatch) -> None:
-    _monkeypatch.setattr("dds_glossary.database.save_dataset", lambda *_, **__: None)
-    _monkeypatch.setattr(
-        GlossaryController, "parse_dataset", lambda *_, **__: ([], [], [], [])
-    )
-
-
-def test_glossary_controller_parse_dataset(
-    controller: GlossaryController,
-    file_rdf: Path,
-) -> None:
-    """Test the GlossaryController parse_dataset method."""
-    concept_scheme_iri = "http://data.europa.eu/xsp/cn2024/cn2024"
-    concept1_iri = "http://data.europa.eu/xsp/cn2024/020321000080"
-    concept2_iri = "http://data.europa.eu/xsp/cn2024/020321000010"
-    collection1_iri = "https://example.org/collection1"
-    collection2_iri = "https://example.org/collection2"
-    concept_schemes, concepts, collections, semantic_relations = (
-        controller.parse_dataset(dataset_path=file_rdf)
-    )
-
-    assert len(concept_schemes) == 1
-    assert len(concepts) == 2
-    assert len(collections) == 2
-    assert len(semantic_relations) == 1
-    assert concept_schemes[0].iri == concept_scheme_iri
-    assert concepts[0].iri == concept1_iri
-    assert concepts[1].iri == concept2_iri
-    assert collections[0].iri == collection1_iri
-    assert collections[1].iri == collection2_iri
-    assert semantic_relations[0].source_concept_iri == concept1_iri
-    assert semantic_relations[0].target_concept_iri == concept2_iri
-
-
 def test_init_dataset_with_failed_datasets(
     controller: GlossaryController,
-    monkeypatch: MonkeyPatch,
     file_rdf: Path,
 ) -> None:
     """Test the GlossaryController init_datasets method with an exception."""
-    _init_datasets(monkeypatch)
     GlossaryController.datasets = [
         Dataset(name="sample.rdf", url=str(file_rdf)),
         Dataset(name="test.rdf", url="test.rdf"),
@@ -74,18 +38,16 @@ def test_init_dataset_with_failed_datasets(
     response = controller.init_datasets()
     files = list(controller.data_dir.iterdir())
 
-    e_schemes, e_concepts, e_collections, e_relations = controller.parse_dataset(
-        file_rdf
-    )
-    a_schemes, a_concepts, a_collections, a_relations = controller.parse_dataset(
-        files[0]
-    )
+    exp_parsed_dataset = parse_dataset(file_rdf)
+    act_parsed_dataset = parse_dataset(files[0])
 
     assert len(files) == 1
-    assert e_schemes == a_schemes
-    assert e_concepts == a_concepts
-    assert e_collections == a_collections
-    assert e_relations == a_relations
+    assert exp_parsed_dataset.concept_schemes == act_parsed_dataset.concept_schemes
+    assert exp_parsed_dataset.concepts == act_parsed_dataset.concepts
+    assert exp_parsed_dataset.collections == act_parsed_dataset.collections
+    assert (
+        exp_parsed_dataset.semantic_relations == act_parsed_dataset.semantic_relations
+    )
     assert response.failed_datasets == [
         FailedDataset(
             name="test.rdf",

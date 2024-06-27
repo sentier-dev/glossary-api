@@ -16,7 +16,15 @@ from dds_glossary.database import (
     search_database,
 )
 from dds_glossary.enums import SemanticRelationType
-from dds_glossary.model import Collection, Concept, ConceptScheme, SemanticRelation
+from dds_glossary.model import (
+    Collection,
+    Concept,
+    ConceptScheme,
+    InCollection,
+    InScheme,
+    ParsedDataset,
+    SemanticRelation,
+)
 
 from ..common import add_collections, add_concept_schemes, add_concepts, add_relations
 
@@ -82,7 +90,7 @@ def test_init_engine_database_exists_drop() -> None:
 
 def test_save_dataset_with_no_data(engine: Engine) -> None:
     """Test the save_dataset function with empty data."""
-    save_dataset(engine, [], [], [], [])
+    save_dataset(engine, ParsedDataset())
     with Session(engine) as session:
         assert session.query(ConceptScheme).count() == 0
         assert session.query(Concept).count() == 0
@@ -95,6 +103,7 @@ def test_save_dataset_with_data(engine: Engine) -> None:
     concept_scheme_iri = "http://example.org/concept_scheme"
     concept1_iri = "http://example.org/concept1"
     concept2_iri = "http://example.org/concept2"
+    collection_iri = "http://example.org/collection1"
     concept_schemes = [
         ConceptScheme(
             iri=concept_scheme_iri,
@@ -123,10 +132,9 @@ def test_save_dataset_with_data(engine: Engine) -> None:
     ]
     collections = [
         Collection(
-            iri="collection_iri0",
+            iri=collection_iri,
             notation="Collection Notation",
             prefLabels=[{"en": "Collection Pref Label 0"}],
-            member_iris=[concept1_iri, concept2_iri],
         ),
     ]
     semantic_relations = [
@@ -136,17 +144,38 @@ def test_save_dataset_with_data(engine: Engine) -> None:
             target_concept_iri=concepts[1].iri,
         )
     ]
+    in_schemes = [
+        InScheme(member_iri=concepts[0].iri, scheme_iri=concept_scheme_iri),
+    ]
+    in_collections = [
+        InCollection(collection_iri=collections[0].iri, member_iri=concepts[0].iri),
+    ]
 
-    save_dataset(engine, concept_schemes, concepts, collections, semantic_relations)
+    save_dataset(
+        engine,
+        ParsedDataset(
+            concept_schemes=concept_schemes,
+            concepts=concepts,
+            collections=collections,
+            semantic_relations=semantic_relations,
+            in_schemes=in_schemes,
+            in_collections=in_collections,
+        ),
+    )
 
     with Session(engine) as session:
         assert session.query(ConceptScheme).count() == 1
         assert session.query(Concept).count() == 2
         assert session.query(SemanticRelation).count() == 1
+        assert session.query(Collection).count() == 1
+        assert session.query(InScheme).count() == 1
         assert session.query(ConceptScheme).one().iri == concept_scheme_iri
         assert session.query(Concept).all()[0].iri == concept1_iri
         assert session.query(SemanticRelation).one().source_concept_iri == concept1_iri
         assert session.query(SemanticRelation).one().target_concept_iri == concept2_iri
+        assert session.query(Collection).one().iri == collection_iri
+        assert session.query(InScheme).one().member_iri == concept1_iri
+        assert session.query(InCollection).one().collection_iri == collection_iri
 
 
 def test_get_concept_schemes(engine: Engine) -> None:

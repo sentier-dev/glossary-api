@@ -7,7 +7,15 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, joinedload, with_polymorphic
 from sqlalchemy_utils import create_database, database_exists, drop_database
 
-from .model import Base, Collection, Concept, ConceptScheme, Member, SemanticRelation
+from .model import (
+    Base,
+    Collection,
+    Concept,
+    ConceptScheme,
+    Member,
+    ParsedDataset,
+    SemanticRelation,
+)
 
 
 def init_engine(
@@ -47,34 +55,23 @@ def init_engine(
     return engine
 
 
-def save_dataset(
-    engine: Engine,
-    concept_schemes: list[ConceptScheme],
-    concepts: list[Concept],
-    collections: list[Collection],
-    semantic_relations: list[SemanticRelation],
-) -> None:
+def save_dataset(engine: Engine, parsed_dataset: ParsedDataset) -> None:
     """
     Save a dataset in the database.
 
     Args:
         engine (Engine): The database engine.
-        concept_schemes (list[ConceptScheme]): The concept schemes.
-        concepts (list[Concept]): The concepts.
-        collections (list[Collection]): The collections.
-        semantic_relations (list[SemanticRelation]): The semantic relations.
+        parsed_dataset (ParsedDataset): The parsed dataset.
     """
     with Session(engine) as session:
-        session.add_all(concept_schemes)
-        session.add_all(concepts)
-        session.add_all(collections)
-        session.add_all(semantic_relations)
+        session.add_all(parsed_dataset.concept_schemes)
+        session.add_all(parsed_dataset.concepts)
+        session.add_all(parsed_dataset.collections)
+        session.add_all(parsed_dataset.semantic_relations)
+        session.commit()
 
-        members: list[Member] = []
-        members.extend(concepts)
-        members.extend(collections)
-        for collection in collections:
-            collection.resolve_members_from_xml(members)
+        session.add_all(parsed_dataset.in_schemes)
+        session.add_all(parsed_dataset.in_collections)
         session.commit()
 
 

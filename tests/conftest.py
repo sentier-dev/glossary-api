@@ -14,9 +14,24 @@ import dds_glossary.services
 from dds_glossary import __version__
 from dds_glossary.database import init_engine
 from dds_glossary.main import create_app
-from dds_glossary.model import Collection, Concept, ConceptScheme, SemanticRelation
+from dds_glossary.model import (
+    Collection,
+    Concept,
+    ConceptScheme,
+    InCollection,
+    InScheme,
+    SemanticRelation,
+)
 from dds_glossary.schema import VersionResponse
 from dds_glossary.services import GlossaryController
+from dds_glossary.xml import (
+    collection_from_xml,
+    concept_from_xml,
+    concept_scheme_from_xml,
+    in_collection_from_xml,
+    in_scheme_from_xml,
+    semantic_relations_from_xml,
+)
 
 
 @fixture(name="dir_data")
@@ -39,7 +54,7 @@ def _root_element(file_rdf: Path):
 def _concept_scheme(
     root_element,  # pylint: disable=redefined-outer-name
 ) -> ConceptScheme:
-    return ConceptScheme.from_xml_element(
+    return concept_scheme_from_xml(
         root_element.find("core:ConceptScheme", namespaces=root_element.nsmap)
     )
 
@@ -49,9 +64,8 @@ def _collection(
     root_element,  # pylint: disable=redefined-outer-name
     concept_scheme: ConceptScheme,  # pylint: disable=redefined-outer-name
 ) -> Collection:
-    return Collection.from_xml_element(
-        root_element.find("core:Collection", namespaces=root_element.nsmap),
-        [concept_scheme],
+    return collection_from_xml(
+        root_element.find("core:Collection", namespaces=root_element.nsmap)
     )
 
 
@@ -60,9 +74,8 @@ def _concept(
     root_element,  # pylint: disable=redefined-outer-name
     concept_scheme: ConceptScheme,  # pylint: disable=redefined-outer-name
 ) -> Concept:
-    return Concept.from_xml_element(
-        root_element.find("core:Concept", namespaces=root_element.nsmap),
-        [concept_scheme],
+    return concept_from_xml(
+        root_element.find("core:Concept", namespaces=root_element.nsmap)
     )
 
 
@@ -70,8 +83,26 @@ def _concept(
 def _semantic_relation(
     root_element,  # pylint: disable=redefined-outer-name
 ) -> SemanticRelation:
-    return SemanticRelation.from_xml_element(
+    return semantic_relations_from_xml(
         root_element.find("core:Concept", namespaces=root_element.nsmap)
+    )[0]
+
+
+@fixture(name="in_scheme")
+def _in_scheme(
+    root_element,  # pylint: disable=redefined-outer-name
+) -> InScheme:
+    return in_scheme_from_xml(
+        root_element.find("core:Concept", namespaces=root_element.nsmap)
+    )[0]
+
+
+@fixture(name="in_collection")
+def _in_collection(
+    root_element,  # pylint: disable=redefined-outer-name
+) -> InCollection:
+    return in_collection_from_xml(
+        root_element.find("core:Collection", namespaces=root_element.nsmap)
     )[0]
 
 
