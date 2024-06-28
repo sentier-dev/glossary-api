@@ -1,0 +1,66 @@
+{
+  "@context": [
+    "https://oo-ld.github.io/glossary-api/schema/Entity.slot_jsonschema.json",
+    {
+      "bonsai": "http://rdf.bonsai.uno/activitytype/exiobase3_3_17/",
+      "inputs": {
+        "@reverse": "bonsai:inputOf",
+        "@type": "@id"
+      },
+      "outputs": {
+        "@reverse": "bonsai:outputOf",
+        "@type": "@id"
+      }
+    }
+  ],
+  "allOf": [
+    {
+      "$ref": "https://oo-ld.github.io/glossary-api/schema/Entity.slot_jsonschema.json"
+    }
+  ],
+  "$comment": "A Process is an Entity, so we import the context (per @context) and schema (per allOf.$ref) of Entity",
+  "title": "Process",
+  "type": "object",
+  "required": [
+    "type"
+  ],
+  "properties": {
+    "type": {
+      "$comment": "Already defined in sentier:Entity -> we override just the default",
+      "default": "sentier:Process"
+    },
+    "iri": {
+      "default": "sentier:MyProcess"
+    },
+    "inputs": {
+      "type": "array",
+      "format": "table",
+      "description": "One or multiple products",
+      "propertyOrder": 2000,
+      "items": {
+        "type": "string",
+        "title": "Products",
+        "$comment": "Enum just for testing",
+        "enum": [
+          "sentier:Steel",
+          "sentier:Concrete"
+        ]
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "format": "table",
+      "description": "One or multiple products",
+      "propertyOrder": 2001,
+      "items": {
+        "type": "string",
+        "title": "Products",
+        "$comment": "Enum just for testing",
+        "enum": [
+          "sentier:WindGenerator",
+          "sentier:Waste"
+        ]
+      }
+    }
+  }
+}

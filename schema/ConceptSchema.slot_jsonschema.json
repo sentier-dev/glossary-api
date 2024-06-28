@@ -1,0 +1,37 @@
+{
+  "@context": [
+    "https://oo-ld.github.io/glossary-api/schema/Entity.slot_jsonschema.json",
+    {
+      "members": "dcterms:hasPart"
+    }
+  ],
+  "allOf": [
+    {
+      "$ref": "https://oo-ld.github.io/glossary-api/schema/Entity.slot_jsonschema.json"
+    }
+  ],
+  "$comment": "A ConceptSchema is an Entity, so we import the context (per @context) and schema (per allOf.$ref) of Entity",
+  "title": "ConceptSchema",
+  "type": "object",
+  "required": [
+    "type"
+  ],
+  "properties": {
+    "type": {
+      "$comment": "Already defined in sentier:Entity -> we override just the default",
+      "default": "sentier:ConceptSchema"
+    },
+    "iri": {
+      "default": "sentier:MyConceptSchema"
+    },
+    "members": {
+      "type": "array",
+      "title": "Members",
+      "propertyOrder": 2000,
+      "items": {
+        "type": "string",
+        "title": "Concept"
+      }
+    }
+  }
+}
